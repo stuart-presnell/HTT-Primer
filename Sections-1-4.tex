@@ -1,0 +1,1256 @@
+\section{Type Theory}
+\label{sec:TypeTheory}
+\subsection{Motivation}
+\label{sec:TypeTheory-Motivation}
+In mathematics we define and study objects and structures of various kinds, such as integers, real numbers, vectors, groups, manifolds, and fibre bundles. Different kinds of things can be treated and manipulated in different ways: we can take the square root of a real number or try to construct a connection on a fibre bundle, but it makes no sense to try to take the square root of a fibre bundle or put a connection on a real number. This idea that there are different kinds of mathematical entities, and operations that can be performed with some kinds but not others, goes back to antiquity: Euclid in the \emph{Elements} distinguishes points and lines in the plane as two distinct kinds of things, and, for example, defines the intersection of two lines but not the intersection of two points, since the latter makes no intuitive sense.\footnote{
+See Kamareddine, Laan \& Nederpelt, ``A Modern Perspective on Type Theory'', Chapter 1 for more discussion of the `prehistory' of type theory.
+}
+A \terminology{type theory} or \terminology{type system} is a formalisation of this idea.  Whereas in ordinary informal mathematical practice we are guided by intuitive understanding of the distinction between different kinds of mathematical entities, in a type theory these distinctions are made formal, and enforced and studied.
+
+Ancient mathematics was concerned with concrete operations that could be performed in physical space, such as the bisection of a line, or with physical objects, such as the addition of two collections of units. The history of mathematics has been one of increasing abstraction. Operations such as the folding or knotting of a four-dimensional surface cannot be performed in practice, and some mathematical structures have only the remotest if any connection to the physical universe, and in so far as they are accessed it is by thought and language. Hence, the history of mathematics has involved an explosion in mathematical vocabulary. In order to make sure they are not talking nonsense mathematicians given definitions of the entities they are studying and the permissible operations that can be performed on them. Some mathematicians and philosophers of mathematics, formalists, argue that mathematics is fundamentally about symbolic systems, and have accordingly sought to make the rules governing them completely explicit so that no interpretation or intuition is required to apply them as it is with ordinary mathematics.
+
+Formal systems in general and type systems in particular are used in computer science. 
+If a programming language enforces 
+strict rules according to which every entity has some type and every function is restricted to take inputs and give outputs of some specified types, it becomes possible to catch and eliminate some common errors entirely automatically, thereby saving the programmer's time and effort and making it impossible for certain kinds of errors to occur when a program is run.
+%\footnote{
+%For example, some programming languages define an `integer division' operation, sometimes written as $//$, that rounds its output down to the nearest integer (i.e.~such that $11//2 = 5$).  If we erroneously used that function when we meant to use real-number division we would get unexpected results, but this  might show up only in subtle ways making it hard to track down the error.  
+%With a strictly enforced type system, such errors are harder to make and easier to catch.
+%}
+
+Type theory is also used to represent and study logic. 
+The ``Curry-Howard correspondence'' is a strong analogy between various logical systems and certain type systems. In particular, a proof in a logical system can be thought of as a mapping from premises to conclusions, analogous to a function that takes terms of its input type to terms of its output type.
+
+\begin{table}[htp]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Logic	&	Proof	&	Premises	&	Conclusion \\
+\hline
+Type theory	&	Function	&	Input type	&	Output type	\\
+\hline
+\end{tabular}
+\end{table}
+
+This correspondence extends to other features of logic, including logical connectives such as conjunction, disjunction, and negation, and the quantifiers. As explained below, this allows the definition of a type theory, in which some types correspond to familiar kinds of mathematical objects while others correspond naturally to \emph{propositions}. In such a system a single set of operations play two roles at once: they are simultaneously mathematical constructions like \emph{forming pairs of elements} and logical operations such as \emph{conjunction}. Likewise, the basic rule of logical deduction, \emph{modus ponens}, follows from the general rule for applying functions to arguments.
+
+This makes it possible to construct a unified language in which logical and mathematical proofs can be expressed, and in which -- since the language is grounded in a formal type theory -- the correctness of proofs can be verified automatically by a computer program by the definition of a \emph{programming language for mathematics}.
+
+A variety of automated proof verification systems exist already, of course.\footnote{
+Such systems include Automath, Metamath, HOL, Isabelle, and Mizar.
+}
+However, according to Vladimir Voevodsky, one of the founders of Homotopy Type Theory, many of these are impeded in their progress by problems that stem from their use of the standard set theoretic foundation for mathematics. 
+The alternative foundation provided by HTT avoids these problems by design (as will be explained in Section~\ref{sec:TypeTheory-Intensional}) and can therefore be used in a much wider domain of mathematics -- in principle, all of modern mathematics can be expressed in this language, and thus all proofs can be checked and verified automatically.
+
+Aside from these practical benefits, a foundation for mathematics based in type theory has other advantages. It forces us to reassess our understanding of logic and mathematical activity in general: the logic that naturally emerges from this unification process is not familiar classical logic, but rather a form of \terminology{constructive logic}. Although this might usually be considered a disadvantage, since familiar principles like the ``Law of Excluded Middle'' cannot be generally used, it is argued below that it enables us to give a firmer philosophical basis for the resulting foundation for mathematics, and eliminates many of the long-standing problems in understanding and justifying mathematical activity. 
+Formalism can be thought of as a way of explaining and ensuring that mathematics is not merely playing with words. Another way of doing the latter is to insist that the entities that are discussed in mathematical discourse are somehow 'constructed' from more basic entities. Brouwer and other intuitiionists based such constructions in the mind of the mathematician, and involved mysterious ideas that have proven hard to make clear and coherent.  Other forms of constructivism (such as Bishop's) involve philosophical claims about mathematics that are unpalatable to the working mathematician. HTT combines constructivism with formalism so that the constructions in question are concatenations of symbols, but without taking a stand on questions about the ontology of mathematics (for more on this, see Section~\ref{sec:TypeTheory-Philosophy}).
+}
+
+Furthermore, the constructive logic we obtain is of interest in its own right. It observes distinctions that collapse in classical logic, thereby revealing mathematical concepts that would normally go undiscovered.  It also has many strong connections to other areas of study such as computer science, category theory, topology, and (crucially) homotopy theory.  This allows ideas to be taken back and forth between these various domains, inspiring innovations in one area that are the analogues of ideas from another. For example, the ``Univalence Axiom'', a central idea in the full development of the theory, is a novel proposed principle of logic that is the direct analogue of an idea from homotopy theory.
+
+\newpage
+\subsection{Basic Ideas of Type Theory}
+\label{sec:TypeTheory-BasicIdeas}
+
+A type theory is a formal system consisting of \terminology{terms} and \terminology{types}, where every term is of some unique type, where the operations that are done to the former are restricted according to the latter, and where types can be terms of higher order types. The basic idea goes back to Bertrand Russell's work at the beginning of the 20th century, though it is implicit in Frege's logic (Quine 1940). Since an understanding of its origins and history is not necessary in order to gain a sufficient understanding of the subject it is only sketched here. \footnote{
+TODO: Cite for the history of type theory.
+}  
+
+Russell developed his type theory in order to avoid the contradiction that he discovered in his set theory.\footnote{Russell also proposed a `ramified theory of types' to avoid problems that arise from impredicativity. HTT in general is impredicative but there is a predicative restriction of it.} Russell's Paradox cannot occur if sets cannot be members of themselves. In his type theory there is a hierarchy of constructions and sets can only belong to sets at a higher level of the system. Paradoxes of self reference that are related to Russell's paradox beset other logical systems too, famously including Frege's, and Alonzo Church introduced a type theory to make his Lamda calculus consistent. In type theories the objects of each type are constructed exclusively from those of lower level types thus avoiding loops in definitions. In Homotopy type theory types can be thought of as spaces inhabited by mathematical objects of lower level types in the hierarchy (HHT, 4).
+
+Fundamentally then a type theory is a 
+formal way of dividing up some universe of discourse
+, usually some part of mathematics, into different types so that each thing is of exactly one type. 
+Different type theories may concern themselves with different universes of discourse, and they may divide things along different lines according to different criteria.  
+The rules of a type theory say what entities it talks about, and into what types it can classify them, as well as what operations can be performed on the terms.  
+By careful choice of the rules it is possible to define a type theory that encompasses \emph{all} of mathematics -- i.e. that is able to talk about any mathematical thing that can be defined -- and that classifies them along lines that make intuitive sense to a mathematician while providing powerful tools for carrying out mathematical reasoning.  Homotopy Type Theory is exactly such a type theory and work on it explores the view of mathematics that arises from it.
+
+Some type systems are, roughly speaking, `finer' or `coarser' than others, 
+in the sense that a finer system draws distinctions between things that a coarser system lumps together into the same kind.  In this sense, Russell's type theory is rather coarse, distinguishing only between \emph{individuals}, \emph{propositions}, and relations over these. Similarly, G\"{o}del had a type theory that had \emph{individuals}, \emph{classes of individuals}, \emph{classes of classes of individuals}, and so on. To capture fully the intuitive idea of `different kinds of things' from ordinary mathematical practice a much finer type system than this is required.
+
+Type systems used in programming languages are generally quite fine, in that they typically distinguish between integers, real numbers, boolean variables, and many other types.  Further, for any two types \type{A} and \type{B} we typically have the \terminology{function type} $\type{A}\to\type{B}$ of functions whose input must be of type \type{A} and whose output will always be of type \type{B}, thus enforcing the idea that certain operations can only be performed on certain kinds of things.
+
+HTT is similarly fine grained. In particular, there is, for example, a type of \emph{natural numbers}, and a type of \emph{points in the infinite Euclidean plane}, and for any two types \type{A} and \type{B} there is the function type $\type{A}\to\type{B}$, and so on. So, as a first approximation, we can think of types as \emph{kinds of thing that a mathematical entity could be}, with the things of a particular type being the terms of that type.
+
+\subsection{Intensional Type Theory}
+\label{sec:TypeTheory-Intensional}
+
+All of what is said above is compatible with taking type theory to be a way of stratifying the universe of sets, terms being taken to be members of their types. However, the interpretation of the idea of `kinds of thing a mathematical entity could be' in HTT is not equivalent to the idea of the set of all mathematical entities of a certain kind being picked out in a particular way. 
+Types are not just particular sets, and terms of types are not just elements of 
+sets. Rather, we should think of \emph{types} and \emph{terms} as the primitives of a different alternative foundation for mathematics. The analogy between \emph{types and terms} and \emph{sets and elements} is sometimes helpful, but it is only an analogy and taking it literally does not give a correct picture.
+
+The fundamental difference between HTT and set theory is that the former is \terminology{intensional} (in fact \terminology{hyperintensional} and the latter is \terminology{extensional}. In set theory there are no two sets having the same members; particular sets are nothing over and above particular collections of entities. The set of even divisors of nine and the set of even divisors of eleven are the very same set, namely the empty set (note that the latter is not nothing but is the unique set that has no members). That sets defined differently are identical iff they have the same members is called the 'axiom of extensionality'. On the other hand, intensions can differ even when extensions are the same. The intension is sometimes associated with the sense or meaning of an expression whereas the extension is associated with that to which the expression refers; for example, the intensions of `featherless biped' and 'rational animal' are different but both expressions refer to human beings. In HTT types are characterised by how they are described as well as by what belongs to them. This decision has consequences, as explained below, that may seem unusual, so we should give some justification for it.
+
+Recall that part of the aim here 
+is to provide a ``programming language for mathematics'' -- a system that is rich enough to encompass all of mathematical practice, but formal so that the correctness of proofs can be verified entirely automatically by computer. The basic notions that we work with must therefore be presented in an entirely clear manner. In particular, if we have two different ways of defining a particular thing then it should be possible to determine just by computational means that these definitions do in fact pick out the same thing. But things defined extensionally, such as the sets of standard set theory, do not in general satisfy this criterion: we may give two definitions that in fact pick out the same extensional collection of entities, but this fact cannot be verified by any known algorithm.
+
+For example, consider the descriptions `positive natural number less than $3$' and 'natural number $n$ for which the Fermat equation $x^n + y^n = z^n$ has at least one solution in the positive integers'.  As Andrew Wiles proved, these two descriptions pick out the same set of numbers. But until his proof was completed we had no way of verifying this fact, and so could not know whether the two described sets were equal or distinct.
+
+In a system in which entities are distinguished extensionally, substituting  one description for another that picks out the same extensional collection should leave everything unchanged.  But in any system that we could actually implement, verifiable proofs that used one description for a particular entity could become unverifiable when we substitute an equivalent description, since we might be unable to confirm that we're talking about the same things.  In practice we are limited by what we can prove, rather than simply what is mathematically true, and any foundational system that is intended to be useful in automated proof verification must recognise this and take account of it from the start.  The equivalence of any entities in our system must not simply be an unprovable (or hard to prove) mathematical fact, but must be \emph{manifest} and so immediately determinable.\footnote{ 
+For more on this, see 
+Per Martin-L\"{o}f, 
+``Constructive Mathematics and Computer Programming''
+(1984)
+\emph{Philosophical Transactions of the Royal Society of London A}, 
+\textbf{312}, 
+pp. 501--518.
+}
+
+This is what makes (extensional) sets unsuitable for a computationally-relevant foundation for mathematics.  We instead use intensional types, which are distinguished by the description under which they are defined.  Thus any question of their equality is immediately determined simply by comparing the descriptions themselves\footnote{
+Up to small modifications: for example, if we had called the three variables in the Fermat equation $a$, $b$, and $c$ instead of $x$, $y$ and $z$, this change would not result in a different type.  The details of exactly what modifications are allowed need not concern us at the moment.
+}
+and so we can always know whether the things we are talking about are the same or different.
+
+By this criterion, the types 
+\emph{positive natural number less than $3$}
+and
+\emph{natural number $n$ for which the Fermat equation 
+$x^n + y^n = z^n$ has at least one solution in the positive integers} are different types, even though (as we now know) these two descriptions pick out the same \emph{set} of numbers.
+
+Intensionality is a feature of all types including those that have \emph{no terms at all}. 
+For example, \emph{even prime number larger than 2} is a type, 
+and \emph{even divisor of 9} is a type -- but there are no terms of either type. However, despite the fact that both types are extensionally empty, they are different types. We said above that types can be thought of as ``kinds of thing a mathematical entity could be''.  However, it's a necessary fact that there are no even divisors of 9, and so it's impossible that there be any, and so no mathematical entity could be one. This illustrates the limitations of the above way of thinking about types. Another way of understanding them that accords very well with their intensional nature is to think of types as concepts. The concept `even divisor of nine' is a different concept to that of `even divisor of eleven', notwithstanding the fact that neither concept has any instances. In mathematics just like in type theory higher level concepts can be built out of lower level ones, and it can be of great mathematical significance to learn that two mathematical concepts have the same extension.
+
+Finally: what types are there?  
+For now, we have no reason to put any kind of limits on what types there are, so any ``kind of mathematical entity'' corresponds to a type, where as usual in mathematics genuine kinds of mathematical entities are those that are well-defined. In HTT well-defined means that higher order types can be constructed from lower order ones according to rules many of which are explained in what follows, and there are certain cannonical lowest order types that are introduced as the primitive types of the theory. We may want to introduce further kinds of restriction if this libertarian attitude leads us into problems, but for now we can leave it open.\footnote{
+If you are now asking ``What about \emph{type} -- is that a kind of mathematical entity?  Is there a type of all types?'' then feel free to look ahead to Section~\ref{sec:Quantifiers}, where we address this issue.  If you weren't asking that question, feel free to ignore it until we get to Section~\ref{sec:Quantifiers}, since it won't bother us until then.
+}
+
+%Since types are not just sets we should not immediately assume that the functions we can construct between types are the same as those we can construct between sets.  In set theory, a function between $A$ and $B$ is just a set of ordered pairs $(a,b)$ satisfying some properties.  In an intensional type theory functions are something different, and between two given types there may be fewer functions or more functions than we might have expected based on set-theoretic intuitions.
+
+\subsection{Subtypes}
+\label{sec:TypeTheory-Subtypes}
+
+Extensional set theory does not distinguish between sets that have the same members, and so does not respect the fact that we may be thinking about the same collection of members in different ways. The fact that the set of even divisors of nine is the empty set is conceptually very different from the fact that the set of even primes greater than two is the empty set.  On the other hand, sometimes descriptions may differ in unimportant ways.  Furthermore, intensional type theory is so fine-grained in the distinctions it makes that each term belongs to exactly one type, and hence the term for the natural number three is a different type to that of the term for the odd number three. In (extensional) set theory we define a subset $S$ of a set $A$ to be a set containing only some but not necessarily all of the elements of $A$; we correspondingly call $A$ a superset of $S$.  Thus any element of $S$ is also an element of $A$. The odd numbers are part of the natural numbers as a whole, and any odd number is also a natural number; set theory naturally represents this fact since the set of odd numbers is a subset of the set of natural numbers, and so the odd number three is also the natural number three. It would appear to be a serious problem for HTT if it cannot faithfully represent such facts as that the odd numbers are among the natural numbers because no term can belong to both types. In this section we'll briefly sketch the solution to this problem, in order to assuage such worries and give a clearer picture of what the terms of types are like.
+
+The basic idea is to use something corresponding to the axiom scheme of separation in ZFC set theory that defines sets of the form:
+\[
+\setSuchThat{x \in A}{P(x)}
+\]
+where $A$ is any set and $P$ is any predicate we can define in our language. Anything defined in this way is evidently a subset of $A$, and there is an obvious injective function from it to $A$.
+
+There is a similar construction in our language that defines ``subtypes'' of a given type. A term of the subtype will be a \emph{pair} consisting of a term \term{x} of \type{A} along with another term that serves as a ``witness'' or ``certificate'' (see Section~\ref{sec:TypeTheory-PropositionsAsTypes} below) that \term{x} satisfies the predicate \term{P}.    
+
+So, for example, by defining predicates corresponding to ``odd'' and ``prime'' we can produce a certificate to to the fact that some number \term{x} is odd (which we might denote $\term{o}^{\term{x}}$), or that some number \term{y} is prime (which we might denote $\term{p}^{\term{y}}$).  Then the pair 
+$(\term{x}, \term{o}^{\term{x}})$ is a term of the type \emph{odd numbers}, while 
+$(\term{y}, \term{p}^{\term{y}})$ is a term of the type \emph{prime numbers}. Then, to take the intersection of two subsets we simply combine certificates, so that, for example, a term of the type \emph{odd primes} would take the form
+$(\term{z}, (\term{o}^{\term{z}}, \term{p}^{\term{z}}))$.
+%The facts that all the primes are odd and that not all the odd numbers are prime can thus be represented by there being no term of the type even primes but a term of the type odd non-primes.%
+
+Thus while the terms of the subtype 
+are not literally the same as those of the supertype, the relation between them is obvious -- to recover the term \term{x} of the supertype from a term $(\term{x}, \term{o}^{\term{x}})$ of the subtype, we simply discard the certificate (i.e. project out the first element of the pair).  This gives a straightforward ``injection'' function, just as we have in set theory and allows to represent the facts mentioned above. 
+
+\begin{samepage}
+This approach neatly combines the following three principles:
+\begin{enumerate}[(i)]
+\item any ``kind of mathematical entity'' or mathematical concept corresponds to a type;
+\item types are distinguished by their descriptions;
+\item each term belongs to exactly one type.
+\end{enumerate}
+\end{samepage}
+without ending up with a profusion of ``clones'' of familiar mathematical entities.
+Even though there are distinct types 
+\emph{natural numbers}, 
+\emph{odd numbers}, 
+\emph{prime numbers}, and so on, we do not face the problem of artificially and arbitrarily distinguished copies of, say, the number $5$ in each type, for example, \emph{5 as a natural number}, 
+\emph{5 as an odd number}, and
+\emph{5 as a prime number}.
+The use of ``witnesses'' or ``certificates'' 
+sketched above (which is the subject of Section~\ref{sec:TypeTheory-PropositionsAsTypes}) allows us to construct terms of all of these types that are distinct from each other in a natural and obvious way and related through predicates and subtypes.
+
+%\newpage
+\subsection{The Curry-Howard correspondence}
+\label{sec:TypeTheory-CurryHoward}
+
+As mentioned in Section~\ref{sec:TypeTheory-Motivation}, type theory can be used to represent and implement logical reasoning. 
+
+It was noted by Curry and Howard (and also by Brouwer, Heyting, and Kolmogorov) that there is a correspondence between type theory and natural deduction.\footnote{Curry much earlier and types, Howard lambda calculus} Operations in type theory that involve the construction of an output term from some input terms (computations) correspond to inferences in the constructive fragment of natural deduction. 
+For example, if we have a function \term{f} of type $\type{A}\to\type{B}$ and a term \term{x} of type \type{A} then applying \term{f} to \term{x} gives, by definition, a term of type \type{B}.  This is formally parallel to the rule of \emph{modus ponens}: if proposition $A \IMPLIES B$ is true, and proposition $A$ is true, then it follows that proposition $B$ is also true.  The Curry-Howard correspondence (or 'equivalence' or 'isomorphism') extends this to other logical operations.  Some of its relevant details are explored below.
+
+Note that in the above example the propositions $A$, $B$, and $A \IMPLIES B$ correspond to types \type{A}, \type{B}, and $\type{A}\to\type{B}$. This will be the case in general: under the Curry-Howard correspondence each \emph{proposition} (which is given by a formula in natural deduction) has a corresponding \emph{type}, and a given proposition being \emph{true} corresponds to the appropriate type being \terminology{inhabited} in the sense that there is a term of that type that we can construct.
+
+We can read the correspondence in the other direction as well, but this is not usually very useful. The type of \emph{natural numbers} corresponds to the proposition ``there exists a natural number'', and since in HTT, as we will see below, there are indeed terms of that type (i.e. the numbers themselves), this proposition is true. The type \emph{even divisor of 9} is uninhabited, since the corresponding proposition ``there is an even divisor of 9'' is false. Hence, this direction of the correspondence -- the interpretation of \emph{types as propositions} -- appears somewhat trivial. \footnote{
+Although it is connected to an interesting feature of our type theory, see Section~\ref{sec:Quantifiers-OtherUsesDependentTypes}.
+}  
+However, the incorporation of logic into type theory known as the \terminology{propositions as types} interpretation, is a key part of the theory, as the next section explains.
+
+%\newpage
+\subsection{Propositions as Types}
+\label{sec:TypeTheory-PropositionsAsTypes}
+
+The Curry-Howard correspondence incorporates logic into HTT by positing a type \type{P} corresponding to every proposition in the domain of mathematics. For example, propositions like ``7 is prime'' and ``every complemented distributive lattice is a Boolean algebra'' correspond to types. (We do not consider propositions about concrete reality such as 
+``snow is white'' or ``water is $H_{2}O$''.) 
+However, we've also said that types are, roughly, 
+``kinds of thing that a mathematical entity could be''.  So for a given proposition $P$, what are the mathematical entities that play the role of the terms of type \type{P} -- the things whose existence corresponds to the proposition $P$ being true?
+
+In some cases we can immediately see what such a thing might be.
+For example, consider the proposition that two entities $X$ and $Y$ are isomorphic (i.e. that there exists some isomorphism between them).  The terms of the corresponding type are precisely the isomorphisms between $X$ and $Y$ (if there are any).  
+Similarly, as we noted above, we can interpret the type \emph{natural number} as corresponding to the proposition ``there exists a natural number'', and of course the existence of each natural number is sufficient for the truth of that proposition. More generally, if $P$ is the claim that there exists such-and-such kind of a thing (or can be naturally interpreted in this way, as in the case of isomorphism above) then of course we can take the terms of the corresponding type to be just those things whose existence is asserted.\footnote{
+Note that a structuralist view of the natural numbers is implicit here since it is assumed that the existence of one natural number is sufficient for the existence of the natural numbers in general because each number would not be what it is if it was not appropriately related to each of the other natural numbers.}
+
+However, there are many mathematical propositions that are not naturally read as existential claims, for example, `7 is prime' (which is perhaps better understood as something like: `all divisors of 7 are equal to 1 or 7'). What mathematical entity could serve as a term of the corresponding type?%\footnote{
+%Relating this to other philosophical discussion about truth in general, we might phrase the question as ``What are the \terminology{truthmakers} for such mathematical propositions?''
+%}
+
+The most obvious mathematical entity whose existence corresponds to the truth of a proposition is a \emph{proof} of that proposition $P$, and indeed the Curry-Howard correspondence relates terms in type theory to proofs in logic. 
+Recall from Section~\ref{sec:TypeTheory-Motivation} that the logic we obtain is \emph{constructive}. Unlike in classical logic, in constructive logic we cannot prove $P$ by showing that $\NOT P$ is contradictory, rather we must have a positive demonstration of the truth of $P$.\footnote {We do not have the rule of reductio ad absurdam, but we can prove that $\NOT P$ by showing that $P$ is contradictory so we do have the rule of indirect proof.} 
+This means that a proof of $P$ requires that there be some means of constructing a thing that stands as conclusive evidence for the truth of the proposition. The things constructed by proofs in HTT are terms known as \terminology{witnesses}. 
+In later sections we'll spell out the various rules of construction, and see many examples of constructive proofs, which will make these ideas clear.
+
+Since we construct witnesses to propositions by means of mathematical and logical rules, 
+we can say that witnesses are mathematical entities. For each proposition $P$, then, \emph{witness to $P$} is an instance of a mathematical concept or way a mathematical entity can be, and therefore constitutes a type. Just as every proof is a proof of a particular proposition, so each witness is a witness to exactly one proposition, and therefore belongs to exactly one type. Witnesses can therefore serve as the terms of these types.
+
+We therefore get a neat  story that allows us 
+to fit the \emph{propositions as types} account into the general model of types as `kinds of thing a mathematical entity could be' or mathematical concepts. The constructive approach to logic requires that 
+every proof must construct a witness to the proposition it proves, and \emph{witness to $P$} is then the type corresponding to proposition $P$.
+
+
+
+\subsection{Formalism}
+\label{sec:TypeTheory-Formalism}
+
+HTT is in part a formal theory in the sense that there are strings of symbols and rules that transform them into one another. We have talked in this section (and will continue to talk) about `constructing terms' and `defining types'.  This way of talking is not intended to imply that mathematical objects are mental or any other kind of constructs.\footnote{
+See Section~\ref{sec:TypeTheory-Philosophy} for more discussion of the philosophical background.
+}
+Rather in HTT to construct a term is to construct an expression in the language that names a term, often given some other terms as input. 
+
+Similarly, `defining a type' is shorthand for `constructing an expression in our language that names a type'. 
+In the remainder of this section we'll unpack these ideas, setting out some of the formalism we'll be using, distinguishing between and connecting the abstract mathematical world and the concrete things, symbols, that we and the computers we program can manipulate.
+
+The language with which we talk about the abstract entities we're working with involves both \terminology{syntax} that tells us how we can put elements of our vocabulary together to make expressions, and \terminology{semantics} that tells us how to interpret these expressions.\footnote{
+The following discussion may seem a little heavy-going, 
+because we need to draw attention to the distinction between expressions in our language and the abstract things they name.  In subsequent sections we will suppress this but it is important that the relevant distinction between the linguistic and the non-linguistic is understood.}
+}
+
+
+
+Until now we've mainly been talking 
+about mathematical entities in English rather than in a formal language, using phrases like `\emph{natural numbers}' to denote types, and saying things like `7 is a prime number'.  But of course we'll want to be able to discuss type theory in a general abstract way without always coming back to specific mathematical examples, and without making any particular assumptions about what types we have and what things can have those types.  (And anyway, we need a formal language to work in if we're going to have a system that can be used by computer programs to validate our proofs.)
+
+In what follows we'll denote arbitrary types by capital letters \type{A}, \type{B}, {\type{C} \ldots} rather than just by descriptions like `natural numbers'.  And rather than talking about `things' that have a particular type, we'll talk about \terminology{terms} of that type, which we'll generally denote with lower case letters \term{x}, \term{y}, {\term{z} \ldots}.  When we want to write down the fact that \term{x} is a term of type \type{A}, we'll write $\term{x}:\type{A}$.  
+%Types and terms will be written in a monospaced typeface.
+%, but we'll sometimes switch back to the usual mathematical typeface (e.g. $k_3 \times x^{a+b}$) when we're not explicitly working in the type theory.
+
+Subsequent sections introduce further syntactic elements which 
+allow us to take expressions that name terms and types 
+and construct from them new expressions that name other terms and types.  For example, if `\type{A}' and `\type{B}' are the names of types, and `\term{a}' and `\term{b}' are the names of terms of these types,
+then `$\type{A} \x \type{B}$' is the name of another type, 
+and `$(\term{a},\term{b})$' is the name of a term of this type.
+
+The \terminology{semantics} assigning meaning to such expressions is as follows:
+%
+\begin{enumerate}[(i)]
+\item Most expressions are the \emph{names} of terms or types in our type theory; we call these \emph{naming expressions}. Each such expression names exactly one term or type -- the evaluation of expressions is always entirely unambiguous. Moreover, any such expression constructed using these rules is the name of a term or type. That is, if we can construct it then it is a valid name. (With one exception: see footnote \ref{fn:empty-names}.)
+
+However, a given term or type may have multiple different names that express it in the language. For example, when we introduce the natural numbers we will use both a unary representation as a sequence of successor operations, such as `$\s(\s(\s(\zN)))$', but we will also use ordinary numerals like `$3$' for convenience. These two expressions are two names for the same term.
+%
+\item Expressions such as `$\term{x}:\type{A}$' assert that the term named by the expression `\term{x}' belongs to the type named by the expression `\type{A}'. We sometimes abuse this notation slightly and say something like `given a $\term{x}:\type{A}$ \ldots', where what we mean is `given an \term{x}, where $\term{x}:\type{A}$, \ldots'.
+%
+\item An expression of the form 
+\[
+\mbox{\textit{exp}}_1 \DefinedAs
+\mbox{\textit{exp}}_2
+\]
+(where $\mbox{\textit{exp}}_1$ and $\mbox{\textit{exp}}_2$ are both names of terms or both names of types)
+introduces the expression $\mbox{\textit{exp}}_1$ as a new name for
+whatever term or type is named by $\mbox{\textit{exp}}_2$.
+
+In particular, when we define functions we write things like 
+`$\term{f}(\zN) \DefinedAs 1$', 
+which introduces the expression `$\term{f}(\zN)$' as a new name for the term named by `$1$'. What we mean by this, expressed verbosely, is
+\begin{quote}
+When we apply the function named by the expression `\term{f}' to the term named by the expression `$\zN$', the output value is named by the expression `$1$'.
+\end{quote}
+%
+\end{enumerate}
+These are the main kinds of expressions used in HTT. The following sections (starting at Section~\ref{sec:SimpleTT}) introduce the main vocabulary and rules of construction that are used to construct the names of terms and types, and explain them as they appear. Section~\ref{sec:DoingLogic} introduces and explains a new kind of expression involving the turnstile symbol $\tstile$, which is used for talking about proofs and constructions.
+
+In sum this is the overall set-up with which we're working:
+\begin{enumerate}[(a)]
+\item 
+We have a language consisting of some basic vocabulary and some construction rules, and we use this language to construct names of terms and types.
+\item
+Every naming expression we can construct using these rules is the name of a term or a type.
+\item
+Every term belongs to exactly one type.
+\item
+Proving a proposition involves constructing a term of the corresponding type using the rules of construction. If the proposition is being proved from some premises then the construction uses terms of types corresponding to the premises as inputs.
+\end{enumerate}
+
+(b) is what guarantees that the rules correspond to constructive proofs of the propositions in question. A proof of some proposition is the construction of an expression that is  sure to name a term of the relevant type, which is by definition a witness to the proposition. There is no further work to give an \emph{existence proof} that the thing named actually exists.\footnote{
+\label{fn:empty-names}
+There is an exception to this: if we are given \emph{inconsistent} premises then we may be able to construct from them an expression that does not name any term -- i.e. an \emph{empty name}.  See 
+Section~\ref{sec:Logic-Negation} for further discussion, and 
+Section~\ref{sec:DoingLogic} for examples.
+}
+
+In general we won't talk explicitly about syntactic matters at all but the above picture provides the background.  We talk about `constructing a term' and `defining a type' rather than the literally correct but more verbose `constructing an expression that names \ldots'.
+
+\subsection{Philosophy}
+\label{sec:TypeTheory-Philosophy}
+
+We end this introductory section with some remarks on the philosophical background to the project. The explosion of work in mathematical logic and set theory in the early twentieth century was accompanied by the development of three schools in philosophy of mathematics, namely Platonism, Formalism and Intuitionism. Platonism is roughly the view that mathematical entities exist independently of our minds. Formalism is roughly the view that mathematics is about the manipulation of symbols in accordance with rules. Intuitionism is the view that mathematical entities are creations of the mind. The latter two views are important influences on HTT though note that the use of constructive logic in HTT does \emph{not} commit us to the view that mathematical entities do not exist before some mathematician has defined them. Nor does it require us to believe that mathematical propositions \emph{gain a truth value} only when some mathematician has proved them.
+
+When it was originally proposed by Brouwer, intuitionism was intended as a thorough reappraisal of all of the underpinning ideas of mathematics. Traditional foundational ideas about the nature of mathematical entities and proofs were supposed to be overturned.\footnote{
+The Intuitionist account was softened somewhat by the Constructivists (e.g. Bishop).
+TO DO: Sketch of Constructivism, how it differs from Intuitionism.
+}
+Brouwer, troubled by classical mathematicians' handling of entities that are far from any possible human experience,  advocated a position that makes narrower claims about what mathematical entities exist, and ties them more directly to human experience and activity. In particular, the law of the excluded middle -- according to which any mathematical proposition can be assumed to be either true or false -- is rejected by intuitionists, and the existence of entities is only inferred when they can be directly constructed according to some finite set of rules in accordance with our intuitions. This is to adopt a constructive attitude to the \terminology{ontology} of mathematics.
+
+However, we might choose to work with a constructive rather than classical logic without adopting the philosophy of Intuitionism or Constructivism for a variety of reasons while being uninterested or untroubled by ontological issues. We may adopt the position that questions about what mathematical entities exist need not trouble us, so long as we suitably restrict ourselves regarding what entities about which we can claim to \emph{know}. Constructive logic provides a secure basis for our claims to knowledge about mathematics, since we only talk about things that are known to exist (since we construct them directly), and everything we prove is guaranteed to have a witness that certifies its truth. This is to adopt a constructive attitude to the \terminology{epistemology} of mathematics.
+
+On the other hand, we might say that philosophical worries of this sort are not relevant at all to our work as mathematicians, 
+and yet still prefer to use a constructive logic for practical reasons. 
+This may be because constructive proofs always produce witnesses to propositions that can be used elsewhere (rather than simply establishing mathematical facts as true or false) and are arguably more useful accordingly, and/or, it may be because constructive proofs are more secure because they are easier to verify. We might, therefore, take a constructive attitude to the \terminology{methodology} of mathematics.
+
+Commitment to constructive methodology can come in different degrees. 
+Constructive logic does not incorporate the Law of Excluded Middle as a general law of logic. 
+However, this does not mean that for each and every proposition $P$ the disjunction $P \OR \NOT P$ does not hold. 
+That is, constructive logic does not adopt the denial or negation of the Law of Excluded Middle. Thus we can always introduce as a posit an assumption of this form for any given proposition, and use this in a proof that is otherwise constructive.  Constructive logic does not \emph{forbid} us from using instances of $P \OR \NOT P$, it simply forces us to take note of any such instances we use and either prove them or acknowledge them as unproven assumptions.
+
+So if, for whatever reason, we want to work in a mathematical framework or style that leans toward constructive methods but is not fully constructive, it is easier to work in a strictly constructive logic and then introduce non-constructive assumptions as and when they're needed than to work in a classical framework that includes the Law of Excluded Middle and then to consider the restrictions of constructive logic later.\footnote{For more details on the merits of constructive logic, and its surprising departures from classical logic,
+see 
+Andrej Bauer's talk ``Five Stages of Accepting Constructive Mathematics'', available at
+\texttt{http://video.ias.edu/members/1213/0318-AndrejBauer}.
+}
+
+In any case, as a subject of \terminology{mathematical} study, 
+constructive logic is of interest independent of any particular philosophical motivations, in particular for its connections to computer science and category theory.  Also, constructive logic allows us to study a broad spectrum of new mathematical objects and properties that are either forbidden or obscured classically.  (For many examples of this, see the Andrej Bauer talk in the previous footnote.)
+
+In the present project we set aside ontological questions about mathematics, and adopt constructive logic for epistemological, methodological, and mathematical reasons.\footnote{
+Essentially, we are assuming that the mathematics founded in constructive logic that we study is no worse off as regards ontological questions 
+than any other branch of mathematics on any other foundation. Further, we assume that whatever solutions can be found to these problems in other settings can equally well be applied here, in a way that is compatible with the foundational assumptions we've made. HTT fits particularly well with structuralism in the philosophy of mathematics but we do not pursue this in the present work.
+} 
+Constructive logic provides essential connections between logic and other domains, in particular topos theory and homotopy theory, that are central to the HTT project. It forces us into methods of proof and definition that are more explicit and therefore more amenable to formalisation in a language that can be used by computer programs to assist in doing mathematics. 
+
+%A foundation for mathematics based in type theory could therefore, potentially, be more economical than the traditional set-theoretic foundation.
+%Rather than separately setting up the axioms and rules of an underlying logical system (such as first-order logic, FOL) and then using this to define the additional axioms and rules of a foundation for mathematics itself (such as ZFC), we can define a single set of axioms and rules for the manipulation of types.  Thanks to the overlap between the logical operations on propositions and the operations on mathematical objects more generally, we don't just end up with all the axioms and rules of FOL \emph{plus} all the axioms and rules of ZFC -- we instead have a much smaller core, written in a unified language.
+
+
+
+
+
+%To answer this fully, we need to pin down exactly what we mean by ``proof''.  If they are to play the role we want, ``proofs''must be mathematical entities that can be constructed and manipulated using (something like) the same basic tools we use in the rest of mathematics.  
+%We could then argue that ``proof of $P$'' is a kind of thing that a mathematical entity can be, and therefore there is a type \emph{proofs of $P$}, which is exactly the type we're looking for.  Finally, we require that each proof is a proof of some \emph{specific} proposition, to conform to the principle that each term has exactly one type that it belongs to.
+%
+%All this seems roughly compatible with our pre-theoretic notion of ``proof'' in mathematics.  But can we make it precise enough to serve in what is suposed to be a foundational theory?
+%
+%The original intuitionists such as Brouwer took proofs to be some kind of mental activity, but we would prefer to avoid this if possible.  We might alternatively take ``proof'' to mean ``formal proof in some preferred logical system'' -- but then we have to say what system, and how exactly proofs are be formalised (which probably requires some powerful principles such as induction just to get the mathematical machinery started).
+%
+%If we're incorporating logic into our type system, as has been our goal all along, then our aim should surely be that ``proof'' means ``proof in the logic that we have incorporated''.  That is, whatever operations we define for manipulating mathematical entities should \emph{self-evidently} play the role of logical operations without being considered part of some pure formal system, and the things they construct should self-evidently stand as proofs of the propositions they purport to be proofs of.  So, for example, when we construct something that counts as a term of the type corresponding to ``7 is prime'', that thing should, in virtue of the meaning conferred upon it by its construction, constitute a demonstration that the natural number 7 is indeed prime.
+%
+%This rough idea, though it may appear at best semi-coherent at the moment, will be as much interpretation as we can give for now for what we mean by taking proofs as terms of types.  We hope it at least gives a hint that, with a bit of work, a coherent foundational picture can be built up in which the terms of types are particular mathematical entities without requiring that we already have an elaborate mathematical machinery established before we can begin the discussion.
+%
+%In the hope of avoiding further confusion on the matter we will for now set aside all interpretation of how we should think of the terms of types corresponding to propositions.  Rather than calling them ``proofs'', we will henceforth simply call them ``witnesses'' to their propositions, with the heuristic that we started with: having a witness to a proposition corresponds (\emph{by definition}) to that proposition being true.
+
+
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+
+
+
+
+
+\section{Expressions and Functions}
+\label{sec:Functions}
+
+In this section we begin the process of building up the particular type theory that we'll be working with throughout these notes.  
+
+Functions are central to type theory.  In most type theories, including the one we'll be developing and exploring, functions are an essential tool for defining and using types and terms.  To define any type in our theory we must specify how to \emph{construct} terms of that type and how to \emph{use} terms that we are given, and this is done via functions into and out of that type (see Section \ref{sec:SimpleTT} for details).
+We therefore need to know how to define and work with functions before we can do anything else.  
+
+This section will be a little more complex than the subsequent ones, since at this stage we have to work directly with the expressions that name terms and types.
+However, once we've done this the definitions of other types can be given by using functions, and the direct manipulation of expressions can be left behind, making things much simpler.
+
+As we've seen many times, the function type between \type{A} and \type{B} is written 
+$\type{A} \to \type{B}$.  That is, if expresions ``\type{A}'' and ``\type{B}'' 
+name types, then the expression ``$\type{A} \to \type{B}$'' also names a type as well.
+Terms of this type are understood as functions whose input is of type \type{A} and whose output is of type \type{B}.  
+But what exactly \emph{are} functions?  Colloquially, we often 
+talk about functions very loosely, treating them as ``gadgets'' or ``devices'' that ``take in'' inputs and ``return'' outputs.  But if we are to use them as a basic part of the foundations of mathematics we need to give them a rigorous formal definition.  (After this we can go back to talking loosely, safe in the knowledge that it can be translated to something more formal).
+
+\subsection{What functions can we define?}
+
+Before we work out \emph{how} we define functions, we should consider the question of \emph{what} functions we should expect to be able to define, since this wil guide our thinking on what functions are.
+
+
+In set theory, a (total) function between sets $A$ and $B$ is an arbitrary pairing of elements of $A$ and $B$, in such a way that each element of $A$ is paired with exactly one element of $B$.
+However, this allows us to define functions that are \emph{uncomputable}, i.e. functions such that no finite process that can be carried out by a computer can take the input and return the specified output.  
+
+Since part of the aim of this project is to define a foundation for mathematics that can be entirely implemented in a computer program, we require that every function that can be defined must be a \emph{finitely computable procedure}.  That is, it must be specifiable in a finite set of instructions and must be guaranteed to terminate within a finite number of computational steps.
+Thus a function cannot just be a pairing of arbitrary inputs to arbitrary outputs as in set theory.  
+
+We must therefore turn to a different style of function definition that ensures the computability of all functions that it can define -- specifically, Church's \terminology{lambda calculus}.\footnote{
+TODO: Cite a source on lambda calculus.
+}  
+In this system we define functions via manipulations of expressions: in summary, the application of a function to an argument involves replacing certain parts of an original expression with a new sub-expression (which names the argument), thereby transforming it into a new expression (which names the output).  Since this is a simple process of \emph{rewriting}, each such step is computationally trivial to carry out.  We can then go on to show that, in this system, any sequence of successive allowed re-writings will eventually terminate, as required.\footnote{
+We won't actually prove this here, but it can be proved.
+}
+
+In the remainder of this section we'll see how this style of function definition works, starting from first principles.
+
+
+
+
+%\newpage
+\subsection{Expressions and Variables}
+
+Since we must deal directly with expressions here, let's remind ourselves of a few details about them.
+
+We have said that every expression -- that is, every sequence of symbols from the vocabulary of our type theory's language, arranged in accord with the construction rules of the language -- can be uniquely and unambiguously interpreted as the name of a term or a type.\footnote{
+Setting aside the issue of inconsistent premises and empty names for now.
+}
+
+Many expressions that name terms will involve sub-expressions that name other terms.  This is familiar from arithmetic and algebra: 
+the expressions ``$3$'' and ``$5$'' name integers, ``$3+5$'' names another, and ``$3/5$'' and ``$(3+5)/5$'' both name rational numbers.  Thus it is clear that an expression naming a term of one type can involve sub-expressions naming terms of other types.  
+
+When we're doing algebra we introduce the idea of \terminology{variables}.  A variable is a symbol from our vocabulary that is stipulated, for the purposes of a calculation, to name a term of some particular type.  Whereas expressions such as ``$(3+5)/5$'' name \emph{particular} terms, variables do not -- we may say that they name ``unknown'' terms of that type whose particular identity has not yet been established.  Expressions involving variables are then stipulated to name ``unknown'' terms of the corresponding types.  For example if we stipulate in a calculation that the symbol ``$x$'' is intended to name an integer, then 
+the expression ``$(3 + x)$'' also names an integer and the expression ``$(3 + x)/5$'' names a rational number.
+
+
+Variables serve as placeholders in an expression, which can be replaced by sub-expressions that name (particular or ``unknown'') terms of the same type.
+For example, if we take the expression ``$(3 + x)/5$'' and replace the symbol ``$x$'' with an expression naming a particular integer, e.g. ``$11$``, then we obtain an expression naming a particular rational number, ``$(3 + 11)/5$''.  We could instead replace ``$x$'' with some other sub-expression involving a variable, such as ``$(2y + 7)$'', to get a new expression ``$(3 + (2y + 7))/5$''.  Or we could simply replace 
+``$x$'' with a different symbol ``$z$'' to get the expression ``$(3 + z)/5$''.
+
+Expressions can of course contain multiple distinct variables, and multiple instances of a given variable, such as ``$(x + 2y)/y$''.  When we replace a variable with some other sub-expression, we must replace every instance of that variable.
+Also, if the sub-expression we are introducing contains variables, we should be careful to ensure that none of these variables are already used elsewhere in the main expression.  Such a \emph{collision} may change the intended meaning of the expression.
+
+There is one further complication that we must address.  In some expressions, such as 
+``$
+\forall n \in \NN, n^2 \geq n
+$'', 
+a symbol such as ``$n$'' appears that does not name a particular term -- so it' a variable -- and yet should not be thought of as a placeholder, waiting to have a particular value filled in.  Rather, we say that ``$n$'' here is a \terminology{bound variable} -- the quantifier ``$\forall$'' \emph{binds} the variable that immediately follows it.  Other mathematical operators that bind variables include ``$\exists$'', the summation symbol ``$\sum$'', and the integration symbol ``$\int$''.
+
+We therefore need to make a distinction between two kinds of variables.  As noted above, some variables are bound by operators like ``$\forall$'' and ``$\exists$''.  Any variable that is not bound in this way is called a \terminology{free variable}.  It is only free variables that serve as placeholders in the way described above, and thus only free variables that are candidates for replacement by sub-expressions naming particular terms.
+
+
+%\newpage
+\subsection{Creating and applying functions}
+
+This basic idea of replacement of free variables -- generalised from arithmetic to arbitrary types, of course -- provides us with a way of defining functions.\footnote{
+TO DO: Cite for more details on (typed and untyped) lambda calculus.
+}
+A function of type $\type{A} \to \type{B}$ is supposed to be something that produces a term of type \type{B} whenever we provide it with a term of type \type{A}.  At the level of syntax, then, what we need is an expression that is stipulated to name a term of \type{B}, but perhaps fails to name a particular term because it contains a free variable ``$x$'' of type \type{A}.  If we provide an expression that names a particular term of type \type{A} we can replace ``$x$'' with this expression, and thus obtain an expression that names a particular term of \type{B}.
+
+Thus for any expression
+$\Phi$ that names a term of type \type{B}, 
+and for any free variable \term{a} of type \type{A}, 
+we have a function, which we write\footnote{
+Traditionally in \terminology{lambda calculus}, where this idea of function definition originates, this function would be written as 
+''$\lambda \term{a} . \Phi$'', but we won't be using that notation here.
+} 
+as $[\term{a} \mapsto \Phi]$.
+Such a function is a term of type $\type{A} \to \type{B}$.  
+So, for example, we have the function
+$[x \mapsto (3 + x)/5]$, which is of type 
+$\NN \to \QQ$.  We say that it takes a natural number as input, and returns a rational number as output.
+
+This method of defining functions, which takes an expression $\Phi$ containing a free variable $\term{a}$ and produces the function $[\term{a} \mapsto \Phi]$, is called 
+\terminology{$\lambda$-abstraction}.
+
+Once we've defined a function, we use it by applying it to arguments.
+Given a function $[\term{a} \mapsto \Phi]$ of type $\type{A} \to \type{B}$, 
+and a term $\term{x}:\type{A}$, we write the application of 
+$[\term{a} \mapsto \Phi]$ to $\term{x}$ as 
+\[
+[\term{x} \mapsto \Phi](\term{x})
+\]  
+
+By definition, the expression 
+``$[\term{x} \mapsto \Phi](\term{x})$'' 
+is the name of a term of \type{B}, but in general we will want to find a better, more useful name for this term.  We do this, of course, by the substitution process given above: if the free variable \term{a} appears in $\Phi$ then we replace every instance of \term{a} in $\Phi$ by \term{x}.  (If \term{a} does not appear in $\Phi$ then we simply discard the input \term{x}, and the output value is just $\Phi$ itself, unchanged.)
+This is the ``computation rule'' for function types, called $\beta$-conversion.\footnote{
+The expression obtained in this way is traditionally referred to as 
+$\Phi[\term{x}/\term{a}]$.
+}
+For example, 
+the application of the function $[\term{x} \mapsto \term{x} + \term{x}]$ to the term \term{2} is written as $[\term{x} \mapsto \term{x} + \term{x}](\term{2})$, and evaluates to $\term{2} + \term{2}$.
+
+
+
+\subsubsection{Renaming the bound variable}
+
+Whenever we have a bound variable in an expression, such as ``$n$'' in  ``$\forall n \in \NN, n^2 \geq n$'', we can always replace it with some other symbol to get an equivalent expression, such as 
+``$\forall k \in \NN, k^2 \geq k$''.  The only constraint on this is that the new free variable we choose must not be the same as any other variable already occurring in $\Phi$ since, as we noted above, such a \emph{collision} may change the intended meaning of the expression.  This procedure of consistent non-colliding renaming is called \terminology{$\alpha$-conversion}.
+
+
+The role of ``\term{a}'' in ``$[\term{a} \mapsto \Phi]$''
+is simply to stand in for the sub-expression that is to replace it.
+Therefore ``$\term{a}$'' is no longer a free variable -- it has been bound\footnote{
+In the traditional notation, ``$\lambda \term{a} . \Phi$'', we would say that ``$\lambda$'' is another operator that binds the variable immediately following it, like ``$\forall$'' and ``$\exists$''.
+} -- and so we can apply $\alpha$-conversion to rename the function.
+Thus, for example, the expressions 
+``$[\term{y} \mapsto \term{x} + \term{y}]$''
+and
+``$[\term{z} \mapsto \term{x} + \term{z}]$''
+are two names for the same function, 
+but 
+``$[\term{x} \mapsto \term{x} + \term{x}]$''
+names a different function.
+
+\subsubsection{Composing functions}
+
+Given functions $f$ and $g$ of types $\type{A} \to \type{B}$ and $\type{B} \to \type{C}$ respectively, we can \emph{compose} them to give a function of type $\type{A} \to \type{C}$.  
+For example, we can compose $[x \mapsto x + 2]$ with $[y \mapsto 3y/5]$ to give $[x \mapsto 3(x+2)/5]$.  The effect of applying this function to some input is, by definition, the same as applying $f$ to that input, and then applying $g$ to the output of $f$.
+
+Examining the above example, we can see how to define the composition of two functions $[a \mapsto \Phi_1]$ and $[b \mapsto \Phi_2]$.  We do this
+simply by replacing the dummy variable ``$b$'' in $\Phi_2$ with the expression $\Phi_1$.  The resulting expression $\Phi_3$ 
+%(which we could also write as $\Phi_2[\Phi_1/\term{b}]$) 
+contains $a$ as a free variable, and so $[a \mapsto \Phi_3]$ is the function we want.
+
+
+\subsubsection{Some elementary functions}
+
+Let's set out some elementary functions that are easy to define.
+
+For any type \type{B} we have the \emph{identity} function on \type{B}.  The expression for this function is just a single symbol 
+that is stipulated to name a term of \type{B}, and which is therefore a free variable.  When we replace this variable with the name of a particular term of \type{B}, what we're left with is, of course, precisely that name.  This therefore gives us a function that takes a term of \type{B} as input and returns exactly the same term as output.  This is trivial, of course, but that's exactly what the identity function is supposed to do.
+
+Similarly trivial, we can define a function whose expression names a particular term \term{b} of \type{B}, but whose dummy variable is a symbol \term{a} of type \type{A}, thus giving the function $[a \mapsto b]$.  When this function is applied to an input of type \type{A} that input is discarded, and the output is the original term $\term{b}$.  This is therefore a \emph{constant} function of type $\type{A} \to \type{B}$.  Again, this may appear confusingly trivial, but constant functions will turn out to have useful applications.
+
+
+
+
+
+%\newpage
+\subsection{Currying: Functions of multiple arguments}
+
+The above definition tells us how to form functions that take single inputs, but we will often want to define functions with multiple inputs: for example, the function that takes two integers and returns their sum.  We can write the expression ``$x + y$'' with two free variables, but how do we make this into a function?
+
+One obvious solution we might suggest is that 
+application of a function to multiple arguments is given by \emph{simultaneously} replacing each variable with its corresponding input.\footnote{
+Taking care, of course, to avoid problems arising from the possibility of collisions between expressions, as in $alpha$-conversion.
+}
+However, the problem with this is that it's not clear what the input type of such a function could be: since all the inputs are treated symmetrically, it seems that the input type ought to be a multi-set of the types of each of the inputs.
+
+Alternatively, rather than simultaneously replacing each variable with its corresponding input, we can replace the variables one by one in some arbitrary order.  So for example, to apply the sum function to inputs $2$ and $5$ we first replace one free variable $x$ with $2$ to get the expression ``$2 + y$'', and then replace the other free variable $y$ with $5$ to get ``$2+5$''.  
+
+The final outcome is of course the same as if we'd replaced all the variables simultaneously, but this scheme has the advantage that it already fits into the picture of function definition and function application given in the previous section:
+\begin{itemize}
+\item 
+Each step in this process is the replacement of a single free variable in an expression by the name of a term, which is just a function application as defined above.
+\item 
+The intermediate thing we produce is again just an expression with a free variable, which therefore gives us a function.  
+\end{itemize}
+So we can think of the intermediate steps as applications of functions which give us \emph{new functions} as their outputs.  In the above example we have one function given by the expression ``$x + y$'' and the free variable ``$x$''; when we apply this function to $2$ we get as output another function, defined by the expression ``$2 + y$'' and the free variable ``$y$''; we then apply this function to $5$ to get the final answer ``$2 + 5$'', which names an integer.
+
+Since we write the latter function as $[y \mapsto 2 + y]$, we must write the original function (which returns this when applied to $2$) as
+\[
+[x \mapsto [y \mapsto 2 + y]]
+\]
+Similarly, since the type of $[y \mapsto 2 + y]$ is $(\NN \to \NN)$, the type of $[x \mapsto [y \mapsto 2 + y]]$
+%the original function 
+is $\NN \to (\NN \to \NN)$.
+
+
+This technique of defining functions of multiple arguments by way of functions that return other functions as their outputs, is called ``Currying'' (named for logician Haskell Curry). 
+
+
+This straightforwardly extends to functions of more than two inputs, of course.  For example, if we want a function whose output of type \type{Z} depends upon three inputs of types \type{P}, \type{Q}, and \type{R}, then by currying we want to define a function 
+\[
+\term{h}: \type{P} \to (\type{Q} \to (\type{R} \to \type{Z}))
+\]
+If $\Psi$ is the expression of type \type{Z} that defines this function, containing variables ``$\term{p}$'', ``$\term{q}$'', and ``$\term{r}$'' of the three respective input types, then we might write \term{h} as 
+\[
+\term{h} \DefinedAs 
+[\term{p} \mapsto [\term{q} \mapsto [\term{r} \mapsto \Psi]]]
+\]
+
+
+%When we need a function of two arguments
+%$\term{g}: (\type{A} \x \type{B}) \to \type{C}$ 
+%we can instead provide a function 
+%$\term{f}: \type{A} \to (\type{B} \to \type{C})$ 
+%that takes the first argument $\term{x}:\type{A}$ as input and returns a function 
+%$\term{f}(\term{x}):(\type{B} \to \type{C})$ 
+%that in turn takes the second argument $\term{y}:\type{B}$ as its input.  Thus 
+%$\term{g}:(\term{x},\term{y}) \DefinedAs \term{f}(\term{x})(\term{y})$.
+
+
+For example, if we have the expression ``$(x + y)/z$'' 
+we can produce a function that takes three integer arguments and returns a rational number as output, which we write as:
+\[
+[x \mapsto [y \mapsto [z \mapsto (x + y)/z]]]
+\]
+Let's see how we apply this function to three arguments, say $3$, $6$ and $5$.
+First we apply this function to $3$, and we get
+\[
+[x \mapsto [y \mapsto [z \mapsto (x + y)/z]]](3)
+\quad \DefinedAs \quad 
+[y \mapsto [z \mapsto (3 + y)/z]]
+\]
+and applying this latter function to $6$ gives
+\[
+[y \mapsto [z \mapsto (3 + y)/z]](6)
+\quad \DefinedAs \quad 
+[z \mapsto (3 + 6)/z]
+\]
+which, finally, we can apply to $5$ to give
+\[
+[z \mapsto (3 + 6)/z](5)
+\quad \DefinedAs \quad 
+(3 + 6)/5
+\]
+Note that sometimes the intermediate functions we get will be interesting in their own right: for example, if we have a function for raising one number to the power of another, 
+$[k \mapsto [x \mapsto x^k]]$, 
+then applying it to the single input $2$ gives us the function that squares its input, $[x \mapsto x^k]$.  This method of \terminology{partial application} can be a useful way of defining functions, allowing us to move from more general functions to more specialised ones.
+
+Note also that we can only apply the function to its arguments in the order specified: only the variable at the very front of the function expression is available for substitution.  Thus we could not, for example, have taken $[k \mapsto [x \mapsto x^k]]$ and substituted $5$ for ``$x$'' to give a function 
+$[k \mapsto 5^k]$, since ``$x$'' is not a free variable -- it is bound when we form the function $[x \mapsto x^k]$.
+However, from the original expression we can choose any of the free variables to bind first, and so we could just as well define the function
+$[x \mapsto [k \mapsto x^k]]$, which takes the same arguments in the opposite order.
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Notation}
+
+
+Rather than referring to functions by names of the form ``$[x \mapsto \Phi]$'', it will generally be more convenient to give them names like ``$f$'' and ``$g$''.  We use the ``$\DefinedAs$'' notation discussed in Section~\ref{} to introduce new names for terms:
+\[
+f \DefinedAs [x \mapsto \Phi]
+\]
+The result of applying function \term{f} to $\term{x}:\type{A}$ is written $\term{f}(\term{x})$, as usual.
+
+
+Now, it is common in mathematics writing to see the same notation ``$f(x)$'' used to denote both 
+\begin{enumerate}[(a)]
+\item a function $f$ that takes a single input, here illustrated with the dummy variable $x$; and
+\item the value obtained by \emph{applying} such a function to a particular input $x$.
+\end{enumerate}
+ 
+This notation is ambiguous: the former is a function of some type $\type{X} \to \type{Y}$, while the latter is a value in that function's output type \type{Y}.  In these notes we will avoid that ambiguity wherever possible, writing \term{f} for the function itself and reserving $\term{f}(\term{x})$ for the result of applying the function to an input.  However, when we're \emph{defining}§ a function by what it does to its input, it will usually be more convenient to write this as
+\[
+\term{f}(\term{x}) \DefinedAs \Phi
+\]
+rather than
+\[
+\term{f} \DefinedAs [\term{x} \mapsto \Phi]
+\]
+but the former can be thought of as simply a synonym for the latter.
+
+It will sometimes be convenient to put the argument of a function as a subscript to the function rather than in parentheses, i.e. writing 
+$\term{f}_{\term{x}}$ 
+instead of
+$\term{f}(\term{x})$.  In particular, we might use this when we have a curried function of multiple arguments and want to write down one of the intermediate functions given by partial application.  For example, given the function 
+$
+\term{h} \DefinedAs 
+[\term{p} \mapsto [\term{q} \mapsto [\term{r} \mapsto \Psi]]]
+$
+of the previous section, we could provide inputs \term{p} and \term{q} to give a function 
+$\term{h}(\term{p})(\term{q})$ of type $\type{R} \to \type{Z}$.  
+If we want to use this function frequently we might re-name it 
+$\term{h}_{\term{p},\term{q}}$.
+
+Some authors will write e.g., 
+$\term{f}(\term{x},\term{y})$ for
+$\term{f}(\term{x})(\term{y})$, or will freely switch between the two notations.  While this saves parentheses, it slightly obscures exactly which types are involved.  In particular, we will later introduce the notation ``$(\term{a},\term{b})$'' for \emph{pairs} (which are terms of a new kind of type); when we investigate the relationship between functions that take pairs as input, such as $\term{g}((\term{a},\term{b}))$, and curried functions of two inputs, such as $\term{f}(\term{a})(\term{b})$, clear notation will be essential.
+
+Finally, some authors will drop the parentheses entirely, simply writing $\term{f}\,\term{x}\,\term{y}$
+for
+$\term{f}(\term{x})(\term{y})$
+and depending upon the reader's remembering the types of all the terms involved to render this unambiguous.  We will avoid this notational minimalism in these notes but you ought to be aware of it when reading other sources: for example, the authors of the HoTT Book note that they will sometimes use this parenthesis-free notation (p. 23).
+
+%Note that a function \term{f} that maps from \type{A} to \type{B} is a term of the function type, and so we have a happy coincidence with the usual notation for indicating the domain and codomain of a function, $\term{f}:\type{A} \to \type{B}$.
+
+
+
+
+
+\newpage
+
+
+
+
+
+
+
+
+
+\newpage
+\section{Logic}
+\label{sec:Logic}
+
+As we noted in Section \ref{}, the Curry-Howard correspondence allows us to incorporate logical operations into our type theory by defining suitable types to represent compound propositions.  The main example we gave there was the correspondence between 
+the implication ${A \IMPLIES B}$ and the function type $\type{A}\to\type{B}$, and thus between the rule of \emph{modus ponens} and function application.  Now that we have seen how functions are defined in our type theory, we must look at this correspondence more closely.
+
+We also need a type-theoretic interpretation of conjunction, disjunction, and negation.\footnote{
+Eventually we will want type-theoretic interpretations for the quantifiers $\forall$ and $\exists$ as well.  We will introduce these in Section~\ref{sec:Quantifiers}.
+}
+We know that for each proposition $P$ there is a corresponding type \type{P} whose terms are witnesses to that proposition.  These logical operations simply produce new propositions (which we will call \emph{compound} propositions) from old ones (which we will call their \emph{component} propositions).
+We should therefore be able to work out 
+how to construct a witness to each compound proposition from witnesses to its components, and thus how to define the types corresponding to compound propositions.
+
+In this section we will consider each of the logical connectives in turn, to se what a witness to each compound proposition should be.\footnote{
+Much of the following will be a sketch of the much more thorough argument given in Per Martin-L\"{o}f, 1996, ``On the Meanings of the Logical Constants and the Justifications of the Logical Laws'', so see that paper for more details and justification.
+}
+In many cases this will result in a logical operation that differs from its classical counterpart -- we will instead get the \emph{constructive} version of the operation.
+
+Then 
+in the next section we 
+show how to implement the required features in type theory.
+
+
+\subsection{Implication}
+\label{sec:Logic-Implication}
+
+We already know, since it was our motivating example, that a witness to $A \IMPLIES B$ is a function that takes terms of \type{A} as input and returns terms of \type{B} as output, i.e. a function of type $\type{A} \to \type{B}$.  But we have not yet seen how this interpretation of $\IMPLIES$ behaves.  Is it the material conditional, or something else?
+
+The standard interpretation of $A \IMPLIES B$ is the material conditional, defined as a function that outputs ``true'' or ``false'' depending only on the truth values of its two inputs.  It is classically equivalent to $(\NOT A) \OR B$ and to $\NOT (A \AND \NOT B)$, but constructively we cannot assume that these equivalences hold (see Section~\ref{}), so instead we take the material conditional to be defined by the following \emph{truth table}:
+\begin{table}[h]
+\centering
+\begin{tabular}{c|c|c}
+$A$ & $B$ & $A \IMPLIES B$ \\
+\hline
+$F$ & $F$ & $T$ \\
+$F$ & $T$ & $T$ \\
+$T$ & $F$ & $F$ \\
+$T$ & $T$ & $T$
+\end{tabular}
+\end{table}\\
+We read each line in this table as saying ``whenever $A$ takes value \ldots\ and $B$ takes value \ldots, then $A \IMPLIES B$ takes value \ldots''.  Is this the correct interpretation of $\IMPLIES$ in the logic we obtain in our type system?
+
+In the \emph{propositions as types} interpretation that we're using, a proposition being true corresponds to its type being inhabited.  But what does ``$F$'' in the table correspond to?  Does it mean that the type is \emph{uninhabited} (i.e. has no terms), or that the type corresponding to the \emph{negation} of the proposition is inhabited?
+In classical logic $\NOT A$ is true exactly when $A$ is not true, but in a non-classical logic this will not in general be the case.\footnote{
+We would expect that $A$ and $\NOT A$ will not both be true (i.e. we expect the Principle of Non-Contradiction to hold).  But if $A$ is not true, this does not mean that $\NOT A$ is true (i.e. we don't expect the Law of Excluded Middle to hold).
+}
+
+Let's first consider the interpretation of ``F'' as meaning that the type is \emph{uninhabited}.
+Given any term $\term{b}:\type{B}$ we can always define a constant function that discards any input and always returns \term{b}; this is in agreement with the second and fourth lines of the truth table.  Similarly, if a term $\term{a}:\type{A}$ exists but \type{B} is uninhabited then 
+$\type{A} \to \type{B}$ must be uninhabited: otherwise we could use this function to produce a term of \term{B}, contrary to our assumption.  This is what the third line says.  But what about the first line?  If both $\type{A}$ and $\type{B}$ are uninhabited then any expression purporting to name a term of \type{B} is an \emph{empty name}, as is any symbol stipulated to name a term of \type{A}; we know that, given an empty name, we can construct another, so it seems reasonable to say that there is indeed a function of type $\type{A} \to \type{B}$ in this case.
+
+
+Since we haven't yet worked out what type corresponds to the negation of a proposition, we can't yet consider the interpretation of ``F'' as saying that the type corresponding to the negation of the proposition is inhabited.  But we will see (in Section~\ref{sec:DoingLogic}) that again all four lines of the truth table are satisfied.  There is a function of type $\type{A} \to \type{B}$ whenever $\type{B}$ is inhabited, or whenever the type corresponding to $\NOT A$ is inhabited.  Likewise, whenever $A$ is true and $\NOT B$ is true, we can prove that $\NOT (A \IMPLIES B)$ is true.  Thus the truth table given above holds if ``$F$'' in a column means ``the negation of the proposition is true''.
+
+This agreement with the material conditional may come as a surprise.  Since the type corresponding to 
+$A \IMPLIES B$ is the function type $\type{A} \to \type{B}$, and since functions are defined, roughly speaking, as things that take an input of type \type{A} and construct from it an output of type \type{B}, we might have expected the interpretation of $A \IMPLIES B$ in our type system to be more like a \emph{relevance logic}, in which $A \IMPLIES B$ only holds if there is some particular connection of relevance between $A$ and $B$.  However, the existence of constant functions 
+and the treatment of empty names 
+provide `loopholes' which are sufficient to weaken the required link between $A$ and $B$ to the extent that $\IMPLIES$ becomes just the material conditional.
+
+
+
+
+
+
+\subsection{Conjunction}
+\label{sec:Logic-Conjunction}
+
+What is a witness to the conjunction $A \AND B$?  Classically, $A \AND B$ is true exactly when $A$ and $B$ are both true.
+Since, in our type theory, truth of a proposition corresponds to the relevant types containing witnesses, the natural candidate for ``witness to the conjunction $A \AND B$'' is a pair of witnesses \term{a} and \term{b}, where 
+\term{a} is a witness to the proposition $A$ and 
+\term{b} is a witness to the proposition $B$.  We then find that this behaves exactly like the classical conjunction does: 
+from the conjunction we can derive each of the conjuncts, and we can derive the conjunction itself if we have both of the conjuncts.
+
+Thus in order for the logic we incorporate to have an operation of conjunction, we need our type theory to have a way of forming pairs. 
+Put another way, we need it to recognise that if there can be things of type \type{A} and things of type \type{B}, then another kind of thing that a mathematical entity can be is \emph{a pair of things, one of type \type{A} and one of type \type{B}}.  Syntactically, we need an operation that takes two expressions that name types and combines them to make an expression naming a new type.
+We therefore need a way of defining the `pair type' or `product type' that we write as $\type{A}\x\type{B}$.  
+
+\subsection{Disjunction}
+\label{sec:Logic-Disjunction}
+
+What is a witness to the disjunction $A \OR B$?  
+Anything that witnesses the truth of $A$ would be sufficient, as would 
+anything that witnesses the truth of $B$.  Thus it would appear that the type corresponding to $A \OR B$ should be the 
+\emph{union} of the two types \type{A} and \type{B} -- that is, a type that gathers together all the terms of types \type{A} and \type{B}.  
+
+But we can't construct a type-theoretic union: as we noted repeatedly in Section~\ref{sec:TypeTheory-Motivation}, a term has a single unique type, and so a term of \type{A} could not also be a term of such a `union type'.  The terms of the type corresponding to $A \OR B$ therefore cannot literally be the same as the terms of $A$ and $B$.
+
+We saw a similar problem in Section~\ref{sec:TypeTheory-Subtypes}, where we wanted to construct something like a subset, but couldn't have the same terms belonging to both the subset and the superset.  In that case, the problem was solved by having the terms of the subset be suitable \emph{counterparts} of the terms of the superset.  
+
+We take a similar approach here: just as `$5$ as a prime number' was made distinct from `$5$ as a natural number' in a straightforward natural way, we can similarly make 
+``\term{a} as a witness to $A \OR B$'' distinct from 
+``\term{a} as a witness to $A$'' in a minimal, natural way.  
+
+In Section \ref{sec:SimpleTT-Coproduct} we show the straightforward way we name these counterparts for each $\term{a}:\type{A}$ and each $\term{b}:\type{B}$.
+The type we produce -- `\emph{witnesses to $A \OR B$}' --
+is then not the union of the two input types, but rather their \emph{disjoint union}.  %, since each term is labelled with which of the two component types it came from.%\footnote{
+%If every term can be of exactly one type, why is this label necessary?  Surely if we have some \term{a} it can only be a term of \type{A}, and similarly a term \term{b} can only be of type \type{B}.  This is true, but it's not sufficient.  If we're handed a term and we know that it came from exactly one of \type{A} or \type{B} it might still not be possible to determine from this information and by inspection of the term \emph{which} of \type{A} or \type{B} it came from, and in general we need to know this more specific information in order to be able to use the term.  Thus we have to tag the terms with information sufficient to work out which type they came from.
+%}
+We call this the `coproduct type', $\type{A} \+ \type{B}$.
+
+This may seem fiddly and therefore an obvious disadvantage of type theory, with its `one type per term' requirement (versus set theory, in which an element can belong to any number of different sets).  However, we show in Section~\ref{sec:SimpleTT-Coproduct} that this requirement automatically leads us to a feature of constructive logic that we might otherwise have had to impose by hand: when we are given a witness of $A \OR B$ we immediately know which of $A$ or $B$ it is a witness to, since the procedure for constructing counterparts retains this information.  
+Thus if we have a proof of a disjunction in constructive logic, we can immediately obtain from it a proof of one of the disjuncts.  The same is not true in classical logic: we can classically prove a disjunction without proving either disjunct.\footnote{
+For example, let $R(a,b)$ denote that $a$ and $b$ are both irrational numbers and $a^b$ is rational.  Let $q=\sqrt{2}^{\sqrt{2}}$, so $q^{\sqrt{2}} = 2$.  Then either $q$ is rational and $R(\sqrt{2},\sqrt{2})$, or $q$ is irrational and $R(q, \sqrt{2})$.  This argument (clasically) proves the disjunction 
+$R(\sqrt{2},\sqrt{2}) \OR R(q, \sqrt{2})$ without proving either disjunct.
+}
+
+
+
+
+
+
+%But we still need to be careful.  Given a term of this compound type, we know that it is either the counterpart of a term of \type{A} or 
+%the counterpart of a term of \type{B}.  But if that's all we know, we won't be able to do anything with the term.  Why not?  Because, as we noted above, making deductions by \emph{modus ponens} corresponds to applying functions; we therefore need to know which of \type{A} or \type{B} our term (or rather, the original to which this is the counterpart) belongs, or else we won't know which function can be applied to it.\footnote{
+%This is a very unclear explanation -- fix it!}
+%The counterparts must therefore record which type each original term came from.
+
+
+
+
+
+
+
+
+
+
+%\newpage
+
+\subsection{Negation}
+\label{sec:Logic-Negation}
+
+The last of the basic logical notions we need to incorporate is negation. There are lots of classical rules and principles involving negation, but since we know that the logic we're incorporating is not classical, we shouldn't expect all of them to be preserved.
+Rather, we need to identify one idea that we can take to be necessary or definitional of negation, and then see which rules are satisfied.
+
+The core idea we  use is that of \terminology{contradiction}.
+We said in footnote \ref{fn:empty-names} that there is one exception to the rule that any naming expression we can construct is the name of a term or a type: if we are given contradictory premises, we may be able to construct from them an \emph{empty name}, i.e. an expression that is not the name of anything.  For example, if we are given that some number $n$ is a divisor of $9$, and we are also given that the same $n$ is an even number, then we cannot guarantee that reasoning that begins from these contradictory premises will produce only sensible mathematics and meaningful names.
+
+This association goes both ways: contradictory premises are the only way we can construct empty names, and likewise the way we demonstrate that our premises are contradictory is to derive an empty name from them.
+
+The simplest and most direct contradiction we can state is of course just the combination of a proposition and its negation. We can therefore take this as (the beginning of) a definition of negation: $\NOT P$ is the proposition that is, by definition, contradictory to $P$ -- i.e. the proposition that allows us to derive an empty name if we are also given $P$, but is not contradictory without $P$.\footnote{
+Without this last clause we could take any self-contradictory proposition to be the negation of any $P$, which is of course not what we intend.
+}
+
+Again, the simplest and most direct way to derive some conclusion from a given premise is to have a \emph{function} that produces the conclusion as output when given the premise as input. We can therefore define a witness to $\NOT P$ as a function that, given a witness to $P$, returns an empty name.
+
+But which empty name?  What should be the output type of such a function?
+As we've noted (in Section~\ref{}) there are many different empty types, i.e. descriptions that are not satisfied by any mathematical entity, such as ``even divisor of $9$'' or ``even prime number greater than $2$''.  We must choose one type to be the ``canonical'' empty type for the purposes of defining negation -- 
+we don't want an infinite profusion of different negations of $P$, each purporting to produce a different empty name when given a witness of $P$!
+
+Since empty names can be derived from contradictory premises, any empty type would be as good as any other to play this role: given an expression purporting to name a term of one empty type, we could presumably construct any other empty name.  But for the same reason, we have no criterion to prefer any one contradictory type over another!\footnote{
+Tradition has favoured statements such as `$0=1$', but this is no more fundamental than any other candidate.
+}
+
+We therefore introduce a new type to play this role -- a type that is by definition empty \emph{and has no other defining characteristics}. We call this the `Zero Type', denoted $\z$. The negation of a proposition $P$ is then the type of functions from $P$ to this Zero Type. Then from any function that purports to construct a particular empty name from a term of \type{P} we can construct a term of the negation type $\type{P} \to \z$ (and vice versa). Thus, although the `infinite profusion' of types mentioned above may still be defined, and all are inhabited exactly when $\type{P} \to \z$ is, it is only the latter that is defined to be \emph{the negation} of $P$. Thus we still have a single canonical negation of each proposition, not infinitely many distinct but logically equivalent ones.
+
+As we show in Section~\ref{sec:DoingLogic}, 
+defining negation in this way makes many proofs, 
+such as the Principle of Non-Contradiction or the validity of \emph{modus tollens}, entirely trivial, and more generally this definition allows us to recover exactly the properties of negation that we would expect in a constructive logic.
+
+%\newpage
+\subsection{The BHK interpretation}
+\label{sec:Logic-BHK}
+
+Let's summarise the chain of reasoning we have followed so far.
+
+We started with the general notion that a proof in a constructive logic is a process that constructs a witness to the proposition being proved. This gave us the idea that witnesses to propositions are mathematical objects, which gives us a type corresponding to each proposition $P$, having the witnesses to $P$ as its terms.  
+We then take inspiration from the Curry-Howard correspondence, which says that logical operations on propositions correspond to constructions in type theory.  
+
+From these ideas we define a type construction corresponding to each of the logical operations, i.e. we show how to define a witness to each compound proposition with reference to the witnesses to their component propositions. What we obtain is a version of the \terminology{BHK interpretation} of intuitionistic/constructive logic, defined by Brouwer, Heyting, and Kolmogorov:
+\begin{samepage}
+\begin{itemize}
+\item A witness to $A \AND B$ consists of a pair of witnesses: the first being a witness to $A$ and the second being a witness to $B$.
+\item A witness to $A \OR B$ consists of either a witness to $A$ or a witness to $B$.
+\item A witness to $A \IMPLIES B$ is a function that returns a witness to $B$ when given a witness to $A$.
+\item A witness to $\NOT A$ is a function that returns an empty name -- specifically, an expression that purports to name a term of the Zero Type -- when given a witness to $A$.
+\end{itemize}
+\end{samepage}
+The particular constructive logic that results follows from the very simple conceptual premises listed above, along with the requirement that we must be able to implement the resulting system with a computer program. This adds the two further requirements that:
+\begin{itemize}
+\item All functions are finitely specified procedures that are guaranteed to terminate within a finite number of computational steps.
+\item Types are \emph{intensional}, i.e. they are distinguished by their definitions, not by their contents.
+\end{itemize}
+
+In the following section we show exactly how these basic pieces of our type theory are defined. Then in Section~\ref{sec:DoingLogic} we give some examples of the use of these tools to carry out proofs, and we explore some ways in which our constructive logic differs from classical logic.
+
+
+\newpage
+\section{A Simple Type Theory}
+\label{sec:SimpleTT}
+
+
+In the previous section we set out some of the basic requirements our type theory must satisfy in order for it to incorporate (constructive) logic under the Curry-Howard correspondence/BHK interpretation. Each of the logical connectives -- implication, conjunction, disjunction, and negation -- introduces a demand on the type theory: a new way of building types out of existing ones (or in the case of negation, an empty type \type{0} that corresponds to the `canonical contradictory proposition' $\ABSURDITY$).  We can summarise these requirements as follows:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+Logical operation	&	Logical notation	&	Type notation	&	Requirement\\
+\hline
+Implication	&	$A \IMPLIES B$	&		$\type{A} \to \type{B}$ 	&	Function Type\\
+Conjunction	&	$A \AND B$		&		$\type{A} \x \type{B}$ 	&	Product Type\\
+Disjunction	&	$A \OR B$		&		$\type{A} \+ \type{B}$ 	&	Coproduct Type\\
+Negation	&	$\NOT A$		&		$\type{A} \to \z$ 		&	Zero Type\\
+\hline
+\end{tabular}
+\end{table}
+
+In this section we'll see more specific details of how we implement this by defining a very simple type system.  It won't come close to the full system we need -- in particular, the most basic types it provides will not correspond to interesting ``kinds of mathematical entities'', but will be almost trivial placeholders.  But this very simple ``toy type theory'' will be useful to illustrate how we define the basic tools we need to do logical reasoning.  We will demonstrate this in Section \ref{sec:DoingLogic} by going through a number of logical proofs in this system.  Moreover, all the definitions we introduce in this section will be retained in the full type system, so we can think of this as a central core around which more sophisticated tools will be added.
+
+We have already seen in Section~\ref{sec:Functions} how to define functions, which are the terms of the function type $\type{A} \to \type{B}$.  We can now use these in stating the definitions of other types, and thereby avoid having to directly manipulate expressions.
+
+To define a new type, or a new way of taking old types and forming new ones from them, we need to provide the following:
+\begin{itemize}
+\item a \terminology{type former} that gives us a way of \emph{naming} the new type (in a way that may depend upon the names of the input types, if there are any);
+\item zero, one, or more \terminology{term constructor}s -- functions that produce a term of the new type (given some terms of the input types, if there are any);
+\item \terminology{elimination rule}s that tell us how to use terms of the new type, i.e. how to define functions that take terms of this type as input.
+\end{itemize}
+We will sometimes also provide a \terminology{computation rule} that tells us how the elimination rules and constructors interact.
+
+
+
+
+
+\subsection{Product Types}
+\label{sec:SimpleTT-Product}
+
+We said in Section~\ref{sec:Logic-Conjunction} that to implement logical conjunction $A \AND B$ we need a type whose terms are pairs of witnesses to $A$ and $B$.  We therefore need to introduce the \terminology{product type} to play this role.  
+The product of types \type{A} and \type{B} is written $\type{A} \x \type{B}$.  That is, if expressions ``\type{A}'' and ``\type{B}'' 
+name types, then the expression ``$\type{A} \x \type{B}$'' also names a type as well.
+
+Since types are defined intensionally (i.e. they are distinguished by their descriptions) we should therefore consider $\type{A} \x \type{B}$ and $\type{B} \x \type{A}$ to be two \emph{distinct} types.\footnote{
+Assuming \type{A} and \type{B} themselves are distinct types.}
+
+
+\subsubsection{Term constructor for products}
+
+To construct a term of a product type we need a term of each of the two input types; we then write the term as $(\term{a}, \term{b})$.  This is analogous to the logical rule of \terminology{$\AND$-introduction}: $A, B \tstile A \AND B$.
+
+Since $\type{A} \x \type{B}$ and $\type{B} \x \type{A}$ are distinct types, we should think of the terms of $\type{A} \x \type{B}$ as \emph{ordered} pairs: if $(\term{a}, \term{b})$ is a term of $\type{A} \x \type{B}$ then $(\term{b}, \term{a})$ is a term of $\type{B} \x \type{A}$.  However, it is clear that from any term of $\type{A} \x \type{B}$ we can construct a term of $\type{B} \x \type{A}$, so the distinction is a purely formal one.
+
+Note also that these ordered pairs are not built out of other things, in the way that ordered pairs in set theory are built up as e.g. $\set{\set{a}, \set{a,b}}$ -- they are \emph{primitive}. 
+% (For more on the comparison with set theory, see Section~\ref{}.)
+
+
+\subsubsection{Elimination rule for products}
+\label{sec:SimpleTT-ProductElimination}
+
+If we are given a term of a product type, how do we use it?  
+Since types correspond to propositions, and terms are witnesses to those propositions, to \emph{use} a term of a product type must mean to \emph{carry out a deduction} involving the conjunction that it witnesses.  At the minimum, then, we will need to know how to apply \emph{modus ponens} where we have a conjunction as the antecedent.  This means we need to know how to define a function from $\type{A} \x \type{B}$ to some type \type{C}.
+
+
+We've seen in Section \ref{} how to define functions of multiple inputs via \emph{currying} -- a function that takes two inputs \term{a} and \term{b} is written as a function that takes \term{a} as its input and returns a new function, which in turn takes \term{b} as input and returns an answer of the appropriate output type.
+
+In the present case, we need a curried function
+$\term{f}:\type{A} \to (\type{B} \to \type{C})$.  From this, we can define a function 
+$\term{g}:(\type{A} \x \type{B}) \to \type{C}$, which works by first applying \term{f} to \term{a} to produce a function 
+$\term{f}_{\term{a}}:(\type{B} \to \type{C})$, and then applying this $\term{f}_{\term{a}}$ to \term{b} to give 
+$\term{f}_{\term{a}}
+(\term{b}):\type{C}$.
+
+This process of taking curried functions and producing from them functions that take a single compound input is called \terminology{uncurrying}.  We will show in  
+Section~\ref{sec:DoingLogic-CurryingUncurrying}
+that there is a one-to-one correspondence between curried and uncurried functions -- each curried function gives us an uncurried version as described above, and all functions of type 
+$(\type{A} \x \type{B}) \to \type{C}$ are obtained in this way.
+
+Currying and uncurrying correspond to the two directions of the logical equivalence 
+\[
+(A \AND B) \IMPLIES C
+\;\;\mbox{ iff }\;\; 
+A \IMPLIES (B \IMPLIES C)
+\]
+
+\subsubsection{Projectors}
+
+As a first example, we can take the special cases where we substitute \type{A} and \type{B} (respectively) for \type{C} in the above, to get the two ``projectors''
+\[
+\term{pr}_\type{A}:(\type{A} \x \type{B}) \to \type{A}
+\quad \mbox{ and } \quad
+\term{pr}_\type{B}:(\type{A} \x \type{B}) \to \type{B}
+\]
+These will be given by curried functions
+\[
+\term{pr}^{\prime}_\type{A}:\type{A} \to (\type{B} \to \type{A})
+\quad \mbox{ and } \quad
+\term{pr}^{\prime}_\type{B}:\type{A} \to (\type{B} \to \type{B})
+\] 
+%
+Which functions should we choose?  It should be clear that in each case there is only one function that is well-defined in general for all types \type{A} and \type{B}.  These are the trivial \emph{identity} and \emph{constant} functions that we considered in Section~\ref{}.
+
+\begin{itemize}
+%
+\item Given any term $\term{a}:\type{A}$ we can define a function $\term{k}_\term{a}:\type{B} \to \type{A}$ that ignores its input and always returns $\term{a}$. 
+The function $\term{pr}^{\prime}_\type{A}$ must therefore take $\term{a}$ as input and return this $\term{k}_\term{a}$.  So
+$\term{pr}^{\prime}_\type{A} 
+\DefinedAs
+[\term{a} \mapsto [\term{b} \mapsto \term{a}]]$.
+%
+\item For any type \type{B} we can define an identity function $\term{id}_{\type{B}}$ that returns its inputs unchanged. 
+$\term{pr}^{\prime}_\type{B}$ must be the function that ignores its input and always returns $\term{id}_{\type{B}}$.  So
+$\term{pr}^{\prime}_\type{B} 
+\DefinedAs
+[\term{a} \mapsto [\term{b} \mapsto \term{b}]]$.
+%
+\end{itemize}
+%
+It is then a simple exercise to see that the functions we get by uncurrying 
+$\term{pr}^{\prime}_\type{A}$ and $\term{pr}^{\prime}_\type{B}$ are exactly the projectors that pick out the first and second components of a pair.  These projectors are the witnesses to the propositions $A \AND B \IMPLIES A$ and $A \AND B \IMPLIES B$, which correspond to the \terminology{$\AND$-elimination} rules.
+
+
+
+
+
+
+
+
+\subsection{Coproduct Types}
+\label{sec:SimpleTT-Coproduct}
+
+
+We use the coproduct to implement logical disjunction.  
+So for any two types A and B, we need a type whose terms can be (counterparts to) \emph{either} a term of \type{A} \emph{or} a term of \type{B}.  If we are given a term of the coproduct we will always be able to see which of the two input types it came from.    
+Thus the coproduct of two types is analogous to the disjoint union of two sets.
+The coproduct of types \type{A} and \type{B} is written 
+$\type{A} \+ \type{B}$.  That is, if expresions ``\type{A}'' and ``\type{B}'' 
+name types, then the expression ``$\type{A} \+ \type{B}$'' also names a type as well.
+
+
+
+
+\subsubsection{Term constructor for coproducts}
+
+Unlike the product type, the coproduct type has \emph{two} term constructors, since we must be able to produce a term of $\type{A} \+ \type{B}$ if we are given a term of $\type{A}$ or a term of $\type{B}$.  
+We call the constructor that `injects' a term of \type{A} into 
+$\type{A} \+ \type{B}$ the ``left injection''
+\[
+\inl: \type{A} \to \type{A} \+ \type{B} 
+\]
+and similarly we have the ``right injection'' that injects terms of \type{B}
+\[
+\inr: \type{B} \to \type{A} \+ \type{B} 
+\]
+%
+Every term of $\type{A} \+ \type{B}$ is therefore of the form 
+$\inl(\term{a})$ for some $\term{a}:\type{A}$
+or
+$\inr(\term{b})$ for some $\term{b}:\type{B}$.  That is, 
+if ``$\term{a}$'' names a term of \type{A} then 
+``$\inl(\term{a})$'' names a term of $\type{A} \+ \type{B}$, and likewise 
+if ``$\term{b}$'' names a term of \type{A} then 
+``$\inr(\term{b})$'' names a term of $\type{A} \+ \type{B}$.  We have no further way of reducing these expressions -- there is no further substitution we can do to eliminate the labels $\inl$ and $\inr$.
+
+
+This is the ``simple, minimal way'' that we distinguish 
+terms of the component types
+from
+their counterpart terms in the coproduct, as discussed in Section \ref{}.  We simply retain the names of the injection functions as part of the names of the counterpart terms, thereby producing a distinct (but obviously closely related) term that records the information about which of the two component types the term came from.\footnote{
+Strictly, the injectors ought to be written as 
+$\inl^{\type{A} \+ \type{B}}$ 
+and 
+$\inr^{\type{A} \+ \type{B}}$ 
+to distinguish the constructors of one coproduct from those of another: 
+$\inl^{\type{A} \+ \type{B}}(\term{a})$
+is a term of $\type{A} \+ \type{B}$, and therefore distinct from
+$\inl^{\type{A} \+ \type{Z}}(\term{a})$, which is a term of $\type{A} \+ \type{Z}$, but omitting these superscripts obscures that.  However, in practice we will abuse notation for the sake of simplicity, and drop the superscripts whenever the coproduct involved is unambiguous from context.
+}
+
+
+
+
+
+\subsubsection{Elimination rule for coproducts}
+
+Since a term of type $\type{A} \+ \type{B}$
+will either be of the form $\inl(\term{a})$ or $\inr(\term{b})$, we can only produce a function from $\type{A} \+ \type{B}$ to some \type{C} if we have functions that can handle each of those two particular cases, i.e. functions 
+$\term{g}_l:\type{A} \to \type{C}$ and 
+$\term{g}_r:\type{B} \to \type{C}$.  A function 
+$\term{f}:(\type{A} \+ \type{B}) \to \type{C}$
+ must then examine its input, see whether it came from \type{A} or from \type{B}, and then apply one or other of $\term{g}_l$ or $\term{g}_r$ accordingly.  This is called \newIdea{case analysis}, and is used whenever we have multiple term constructors for a type.  
+ 
+Thus to define a function 
+$\term{f}:(\type{A} \+ \type{B}) \to \type{C}$
+we just need to specify functions $\term{g}_l$ and $\term{g}_r$ of the appropriate types; \term{f} is then defined as:
+\[
+\term{f}(\inl(\term{a})) \DefinedAs \term{g}_l(\term{a})
+\]
+\[
+\term{f}(\inr(\term{b})) \DefinedAs \term{g}_r(\term{b})
+\]
+
+
+
+
+
+
+\newpage
+
+\subsection{Finite Types}
+\label{sec:SimpleTT-FiniteTypes}
+
+\subsubsection{``No-input'' constructors and the Unit type}
+
+As we've seen in the previous sections, we formally define types by giving constructors for them.  The constructors for the product and coproduct types take terms of other types as input.  However, we will sometimes also want to define types having one or more constructors that take no input.  For example, when we define the natural numbers $\type{\NN}$ (Section~\ref{}) we will want to say that there is a term $\zN:\type{\NN}$ to serve as the zero element, but the constructor that produces $\zN:\type{\NN}$ does not take a term of some other type as input.  Or does it?
+
+In category theory we have the idea of a \terminology{terminal object}: an object $t$ in a category is terminal if there is exactly one morphism from any object in the category to $t$.  For example, in the category of sets any singleton set $\set{x}$ is terminal, since there's exactly one function from any set to $\set{x}$.  If a category has a terminal object $t$ then we can use morphisms \emph{from} $t$ into other objects to pick out ``elements'' of those objects: in the category of sets, a function $f: \set{x} \to A$ picks out a single element $f(x) \in A$.  
+
+We can use a similar idea in our type theory.  We therefore define the \terminology{Unit type}, written as \type{1}, which by definition has exactly one term, $\ast:\type{1}$.  It therefore has just a single term constructor, which produces this term.
+Then, whenever we want to define a type like $\type{\NN}$ that has particular named terms like $\zN$, we can fit these into the usual scheme of term constructors as functions from another type.  For example, the constructor for $\zN$ is a function of type $\type{1} \to \type{\NN}$.  Since there is only one term of \type{1}, this function has just one output, which is $\zN$ itself.\footnote{
+In the language of expressions and substitutions of Section~\ref{}, this is the constant function $[\term{i} \to \zN]$ which takes an expression naming a term of \type{1} and discards it, always returning $\zN$.  Indeed, any function from \type{1} must be a constant function: if we know that the dummy variable in a function is of type \type{1} then we know it can only be replaced by an expression naming $\ast:\type{1}$, and so there is no possible variation in the outputs the function can return.
+}  Although we write them as functions $\type{1} \to \type{\NN}$ we will still call these ``no-input constructors''.
+
+
+\subsubsection{Finite types}
+
+Since we can define types that have one or more no-input constructors, we can also define types that have \emph{only} no-input constructors.  Since any type must be finitely specified, there can only be finitely many such constructors for a given type, and thus these types are guaranteed to have only finitely many terms.  We therefore call them \terminology{finite types}.
+
+We name these types after the number of constructors (and therefore the number of terms) they have.  Thus the finite type with two terms is called \type{2}, the one with three terms is \type{3}, and so on.  What should we call the terms of these types?  To name the $n$ distinct terms of a finite type we want $n$ distinct names, and of course we don't want to have to re-invent new names for every finite type we encounter.  We therefore use the names $\fin{0}{n}, \fin{1}{n}, \fin{2}{n}, \ldots$ for the terms of the finite type with $n$ constructors.  So for example the terms of \type{2} are 
+$\fin{0}{2}, \fin{1}{2}$ and the
+terms of \type{3} are 
+$\fin{0}{3}, \fin{1}{3}, \fin{2}{3}$.
+
+
+\subsubsection{Some warnings about notation}
+
+%Don't get confused: ``\type{0}'' (with no subscript) is the name of a type that, by definition, has no term constructors.  ``\type{2}'' (no subscript) is the name of a type that, by definition, has two term constructors that take no input.  ``$\term{0}_{\type{2}}$'' (with subscript ``\type{2}'') is the name of a term constructor in the type \type{2}, and is not related to the type \type{0} at all.  
+
+To be clear: these names for the term constructors are arbitrary -- we could just as well have called the finite types $\alpha$, $\beta$, $\gamma$, etc. (inventing new names when we ran out of Greek letters!).  Likewise we could have used
+``$\term{Alice}$''
+and
+``$\term{Bob}$'' to name 
+the terms of \type{2}.  Constructing names out of natural numbers is just a way to ensure that we can always generate names for these types and terms without having to resort to invention.  But this is just a naming scheme -- these do \emph{not} play the role of natural numbers in our type system.  In particular, we don't have anything that serves as a \emph{successor} function mapping from the type with $n$ terms to the type with $n+1$ terms.\footnote{
+There are functions of type $\type{2} \to \type{3}$, of course, and also functions of types $\type{2} \to \type{4}$, and $\type{4} \to \type{2}$, and so on.  But none of these can do the job of a successor function, which should be a single function that takes any natural number as input and returns the next natural number as output.
+}  Likewise there is no successor function or relationship -- in fact, no ordering at all -- between the terms of a given finite type.
+
+In Section~\ref{} we will extend the Simple Type Theory presented in this section by introducing a new type $\type{\NN}$ containing \emph{infinitely many} terms, which are the natural numbers.  In the Simple Type Theory that we're describing in the present section we don't have a type that corresponds to the natural numbers, since there is no type that contains infinitely many terms.
+
+
+Another confusion to be avoided: 
+the HoTT Book (p. 34) calls \type{2} ``the type of booleans'', but we avoid this name here since it is misleading.  It's not useful to think of $\fin{0}{2}:\type{2}$ and $\fin{1}{2}:\type{2}$ as  representing truth values ``false'' and ``true'', since we never ``evaluate'' propositions by mapping them into $\type{2}$.  
+Under the BHK interpretation the truth of a proposition corresponds to that proposition's type being \emph{inhabited} -- and this can never be demonstrated by means of a function from that type into another type.
+
+
+
+
+
+
+
+%%How do we define a function from $\type{2}$ to some arbitrary type \type{C}?  What ingredients do we need?  Any function $\term{g}: \type{2} \to \type{C}$ is defined by what it does to 
+%%$\term{0}_{\type{2}}$ 
+%%and 
+%%$\term{1}_{\type{2}}$ -- it maps them to some values 
+%%$\term{g}(\term{0}_{\type{2}}):\type{C}$ 
+%%and
+%%$\term{g}(\term{1}_{\type{2}}):\type{C}$ respectively.
+%%So all we need are these two designated values in \type{C} to act as the targets for \term{g}.  That is, for any two values 
+%%$\term{c}_0:\type{C}$ 
+%%and
+%%$\term{c}_1:\type{C}$
+%%we can define a function $\term{g}: \type{2} \to \type{C}$ such that
+%%$\term{g}(\term{0}_{\type{2}}) \DefinedAs \term{c}_0$ 
+%%and
+%%$\term{g}(\term{1}_{\type{2}}) \DefinedAs \term{c}_1$. 
+%%
+%%Now let's formalise this claim.  If we can construct a $\term{g}: \type{2} \to \type{C}$ whenever we're given a pair 
+%%$\term{c}_0: \type{C}$
+%%and
+%%$\term{c}_1:\type{C}$ then we should be able to define a function
+%%\[
+%%\rec{\type{2},\type{C}}:(\type{C} \to (\type{C} \to (\type{2} \to \type{C}))
+%%\]
+%%that carries out this construction.  We'll call this function 
+%%$\rec{\type{2},\type{C}}$ 
+%%the \terminology{recursor} for \type{2} (into type \type{C}).   
+%%
+%%Since we know how to define the function 
+%%$\term{g} = \rec{\type{2},\type{C}}(
+%%\term{c}_0)( 
+%%\term{c}_1)$ 
+%%that we want to produce, the definition of $\rec{\type{2},\type{C}}$ is simple to state as a case analysis %\footnote{
+%%%So far we've only used case analysis on terms of coproduct types.  But we can apply this technique to any type in which we have a finite number of cases and we can guarantee that any term of the type will fall under one of those cases.
+%%%}
+%% on the terms of $\type{2}$:
+%%\[
+%%\rec{\type{2},\type{C}}(\term{c}_0)(\term{c}_1)(\term{0}_{\type{2}}) \DefinedAs \term{c}_0
+%%\]
+%%\[
+%%\rec{\type{2},\type{C}}(\term{c}_0)(\term{c}_1)(\term{1}_{\type{2}}) \DefinedAs \term{c}_1
+%%\]
+%%
+%%The definition of $\rec{\type{2},\type{C}}$ therefore completely formalises the claim that for any two values 
+%%$\term{c}_0:\type{C}$ 
+%%and
+%%$\term{c}_1:\type{C}$
+%%we can define a function $\term{g}: \type{2} \to \type{C}$ as required.  Beyond simply saying (informally, in the meta-language) that we \emph{can} do it, we've now stated explicitly (formally, within the language of our type theory) \emph{how} to do it.
+%%
+
+
+\newpage
+\subsection{The Zero type and the rule of Explosion}
+\label{sec:SimpleTT-ZeroType}
+
+We can give the definition of the Zero or Empty Type very briefly, since it corresponds to the contradictory proposition $\ABSURDITY$ which by definition has no witnesses.
+
+Since the empty type doesn't depend upon any other types we don't have a type former; we just have the name of the type itself, \type{0} (which we could think of as a type former that takes no inputs).
+
+By definition \type{0} has no terms and therefore no term constructors.
+
+The main use of the Zero type is in the definition of negation, and it will rarely show up outside of this use.
+
+% We can think of the Zero type as being like a `degenerate' or `nullary' version of the coproduct.
+
+
+
+\subsubsection{Explosion}
+
+According to the HoTT Book (p. 34), for any type \type{C} `we can always construct a function 
+$\term{f}:\z \to \type{C}$ 
+without having to give any defining equations, because there are no elements of $\z$ on which to define \term{f}.' That is, since there are no terms of \type{0} there is nothing for such a function to act upon, and so no elimination rules to define. The existence of this (trivial) function for each type corresponds to the logical law of `Explosion' -- from a contradiction any proposition follows -- also called \emph{ex falso quodlibet}. For each type \type{C} we will call this function $\term{!}_{\type{C}}:\z \to \type{C}$.
+
+As shown in Section~\ref{sec:DoingLogic},
+Explosion is required in order to prove several useful classically valid principles -- in particular, 
+\[
+A \OR B, \NOT A \tstile B
+\] 
+the rule of `Disjunctive Syllogism' (DS).%\footnote{
+% It is also used in Chapter 7 of the HoTT Book (p. 220) to prove $(A \OR \NOT A) \IMPLIES (\NOT \NOT A \to A)$, which is used on the way to proving ``Hedburg's Theorem'': If $X$ has decidable equality then $X$ is a set.
+% }  
+It also allows us to prove that one of the `Paradoxes of Material Conditional', namely 
+$\NOT A \tstile A \IMPLIES B$, also holds for our conditional (even though it appeared to resemble a `relevant logic' conditional rather than the material conditional).
+
+This is disappointing, and encourages us to reflect more deeply on the justification for including Explosion in our system.  Does the justification given in the HoTT Book (quoted above) fit with our constructive intuitions?  
+
+We could argue that it doesn't, that it's just sneaking in Explosion from the meta-language without good reason.  Specifically, the argument appears to go: ``there are no terms of \z, so it is impossible that we have such a term; therefore, \emph{if we had} a term of \z\ we would be in a contradictory situation, in which case any consequence follows -- in particular, the construction of a term of any type \type{C}; thus, from a term of \z\ we can get a term of any type, so we always have a function $\term{!}_{\type{C}}:\z \to \type{C}$''.  Thus, if we do not commit ourselves to Explosion in the meta-language (i.e. if we remain open to a \terminology{paraconsistent} approach) then the above argument for the existence of $\term{!}_{\type{C}}:\z \to \type{C}$ no longer works.
+
+But if we are trying to establish a new foundation for mathematics that incorporates its own logical foundation (rather than being built upon a separate logical framework) then, unless it is unavoidable, we should not assume the validity of rules in the meta-language in such a way that they are thereby imported into the system.  We should instead be able to give justifications for the rules we assume and build in, in a way that follows from (or at least accords with) the intuitions that motivate the project.
+
+Another attempt to justify the existence of $\term{!}_{\type{C}}:\z \to \type{C}$ might be motivated by analogy with the definition of functions in set theory, where for each set $A$ we have exactly one function from the empty set to $A$ (and similarly in the category of sets, where the empty set plays the role of an initial object).  In set theory we define a function as a subset of the cartesian product meeting the condition that for every $x$ in the domain there is a unique $y$ in the codomain such that $(x,y)$ is included in the subset.  Then, since the domain is empty, this condition is vacuously satisfied by the empty function.  But functions in our type theory are not defined as subsets of the product, but rather are primitive, and so this argument cannot be applied directly.
+
+The intuitive notion of a function in our constructive type theory -- as a gadget that takes terms of its input type and from them constructs terms of its output type -- seems to tell against the existence of $\term{!}_{\type{C}}:\z \to \type{C}$.  What does it mean to construct something from an ``impossible entity''?  Since there are no such things, any claim to have one must be illusory somehow, and so such a function would have to produce a term of \type{C} from nothing.  It is generally accepted that for arbitrary types we cannot simply produce a term of that type from nothing (see, in particular, p.~9 of the HoTT Book).  Arguably, it should be no more possible to produce a $\term{c}:\type{C}$ from a term that claims impossibly to have type $\z$ than it is to produce it from nothing.
+
+
+\subsubsection{Disjunctive Syllogism and other casualties}
+
+However, we should not hurry into dismissing Explosion, for in discarding this rule we neccesarily must discard others from which it can be derived.  In particular, there is a simple proof of Explosion from $\OR$-introduction and the Disjunctive Syllogism:
+\begin{samepage}
+\begin{enumerate}
+\item assume $A$ and $\NOT A$ as premises;
+\item derive $(A \OR B)$ from $A$ by $\OR$-introduction;
+\item derive $B$ from $(A \OR B)$ and $\NOT A$ by Disjunctive Syllogism.
+\end{enumerate}
+\end{samepage}
+Thus from contradictory premises we may derive any arbitrary conclusion.  (Combined with the proof of DS from Explosion this shows that, under the assumption of $\OR$-introduction, DS and Explosion are logically equivalent.)
+
+Since $\OR$-introduction is indispensable -- it is implemented as the term constructors of the coproduct type -- then if we are to eliminate Explosion we must also abandon Disjunctive Syllogism. Is this acceptable? We typically motivate DS by the following reasoning: `If I have $A$ or $B$, and I don't have $A$, then I must have $B$'. This idea seems entirely reasonable, and doesn't depend upon non-constructive assumptions like LEM. The problem, then, is in the identification of `I don't have~$A$' with~$\NOT A$. Constructively, $\NOT A$ doesn't mean `I don't have $A$', but rather `If I have $A$ then I can derive a term that should not exist (i.e. a witness to a contradiction)'.  
+Unless we have some way of expressing `I don't have $A$' directly, there may be no way to implement the intuition behind DS.\footnote{
+Question: Can we justify DS via modus tollens (Section~\ref{sec:DoingLogic-ModusTollens}), which is constructively valid and well-motivated (since it's just function composition)?  i.e. `If I had a term of \type{A} I could do something impossible; I can't do something impossible; therefore I don't have a term of \type{A}.'
+}
+
+Aside from DS, there are probably other rules of classical logic that we would need to give up in order to exclude Explosion -- any argument we can use to derive Explosion must contain some rule or combination of rules that will have to be abandoned.  A more detailed study of paraconsistent logic would be required to identify which combinations are unacceptable, and which particular rules should be eliminated.\footnote{It may be that, if we want a system in which Explosion no longer features, we will have to entirely reconsider the reasoning of the previous two Sections, starting afresh from an established paraconsistent logic such as \terminology{LP} or \terminology{RM}$_3$.
+}
+
+For the remainder of these notes we go along with the formulation in the HoTT Book, and grant that Explosion is indeed valid, i.e. that we can always construct $\term{!}_{\type{C}}:\z \to \type{C}$.  
+% Thus the rules whose justification requires Explosion, such as DS and $\NOT A \tstile A \IMPLIES B$, will also be accepted.  However, it would be interesting to pursue an alternative approach, building a paraconsistent version of HTT that arguably better captures the constructive ideas that motivate the project.
+
+
+
+% \end{document} 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

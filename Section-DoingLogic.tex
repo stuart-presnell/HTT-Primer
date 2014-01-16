@@ -1,0 +1,1497 @@
+\section{Doing Logic in Type Theory}
+\label{sec:DoingLogic}
+
+We've now set up enough machinery to do some simple logical deductions in our type theory.  In this section we'll get some experience of using it by investigating some classical theorems to see how we prove them in HTT.  As we'll see, some proofs that are classically valid cannot be replicated in constructive logic -- they are not \terminology{constructively valid}.  We therefore need to take a little care when reasoning, in order to ensure that we're not relying on habitual moves from classical reasoning that are no longer allowed in constructive logic.  By checking a few examples we'll eventually build up a `library' of constructively valid moves that we can depend upon, which will simplify future proofs.  
+
+Part of the goal of this section is to illustrate and reinforce the interpretation of terms and types that has been used throughout the previous sections, namely that types correspond to propositions and terms correspond to witnesses to propositions.  This way of thinking about logic is useful because the constructive logic we're using follows very naturally from it, as we saw in Section~\ref{}.  It is therefore easier to re-train our intuitions about logical reasoning from classical to constructive thinking if we use this model.  It will also be helpful when we come to introduce new elements into our type theory, such as \emph{quantifiers} and \emph{identity types}, since it's easier to understand them and motivate their definitions in this explicitly semantic terms-as-witnesses model.
+
+Of course we could define purely \emph{syntactic} rules (as in Natural Deduction, for example) and express all our proofs as formal manipulations of expressions.  While this would serve to show which proofs are constructively valid and which are not, it would provide no experience of thinking about proofs as manipulations of witnesses to propositions.  In the following proofs we will therefore work in a \emph{semantic} mode, using the language of ``being given witnesses'' and ``constructing witnesses''.  For a formal deduction system using introduction and elimination rules, see Appendix A.2 of the Hott Book.
+
+%
+%An argument of this form constitutes an \emph{informal proof} of the proposition, in the sense of an argument that convinces mathematicians, just like the informal proofs that are published in mathematics papers with arguments stated in English.  However, in HTT we can take a further step: if we wish we can go on to make that argument completely formal -- turning an argument of the form ``given $X$ we can construct $Y$'' into a specific \emph{function} that implements this construction.  In practice we'll probably only want to complete this formalisation if we intend to have our proof automatically verified by a computer.  But the fact that we really can formalise our proof -- not just in an `in principle' kind of way, but actually in practice -- provides an extra level of reassurance that we've got it right when absolute mathematical certainty is required.
+
+
+
+\subsection{Notation}
+\label{sec:DoingLogic-Notation}
+
+Let's first set out some notation.  To illustrate the translation into type theory notation, we'll write each example in two forms: first using the familiar ``logical notation'' ($\AND$, $\OR$, $\IMPLIES$, and $\NOT$) and then in the language of the Simple Type Theory defined in the previous section ($\x$, $\+$, $\to$, and $\to \z$).
+
+\begin{samepage}
+The theorems to be proved will be of the form ``if $Q$ and $R$ then $P$'', which we'll write as:
+\[
+Q\andalso R \tstile P
+\]
+or as simply $\tstile P$ if the theorem is a tautology involving no premises.
+\end{samepage}
+
+The translation of these into type theory will usually be written in the same way:
+\[
+\type{Q}\andalso \type{R} \tstile \type{P}
+\] 
+(and $\tstile \type{P}$ for tautologies).  However, in our constructive type theory these should be read as ``given a term of type \type{Q} and a term of type \type{R}, we can construct a term of type \type{P}''.  It will often be useful to have names for these terms that we can use in the body of the proof, so we will sometimes write the theorems as
+\[
+\term{q}:\type{Q}\andalso \term{r}:\type{R} \tstile \term{p}:\type{P}
+\] 
+Sometimes we'll only name the terms we need to refer to.  When we have terms of negation types like $\type{A} \to \z$ we'll often use the convention of naming them with an overbar, e.g. 
+$\bar{\term{a}}: \type{A} \to \z$.  Similarly, terms of double negation types like 
+$(\type{A} \to \z) \to \z$ will sometimes be given names with double overbars, e.g. $\bar{\bar{\term{a}}}$.
+
+If we have $\type{A} \tstile \type{B}$ and $\type{B} \tstile \type{A}$ then we'll write 
+$\type{A} \dashv \tstile \type{B}$, and sometimes (usually for comparison with another theorem) we'll write $\type{A} \tstile \type{B}$ as $\type{B} \dashv \type{A}$.
+
+We might also want to express facts about \emph{relative constructability} -- if we can construct \type{B} from \type{A} then we can also construct \type{Y} from \type{X}.  We'll write this as
+\[
+\frac{\type{A} \tstile \type{B}}
+{\type{X} \tstile \type{Y}}
+\]
+So, for example, we have
+\[
+\frac{\type{A} \tstile \type{B} \quad \type{B} \tstile \type{C}}
+{\type{A} \tstile \type{C}}
+\]
+As we'll see in the next section, this relative constructability notation does not add anything new -- it doesn't make our language more expressive -- since it turns out to be just a convenient notation for something we could already express without it (i.e. what in computer science would be called ``syntactic sugar'').
+
+
+
+% \newpage
+\subsection{How do we construct a term?}
+\label{sec:DoingLogic-ConstructTerm}
+
+A proof in our type theory involves the construction a term of some specified type.  We should therefore review how we construct terms of the various types we've encountered.
+
+Sometimes we can recover the term we want from another term:
+\begin{itemize}
+\item We may happen to have a function available -- either given in the premises or one that we've constructed ourselves -- that returns a term of the type we want when given an appropriate input.  In that case, we have reduced the problem to producing a term of that function's input type (which may or may not be easier than the original problem). 
+
+\item Alternatively, we may have a term of a product type available that contains as one of its components a term of the type we're looking for.  In that case, we just extract it with the appropriate projector (which is always available).  
+
+\item Alternatively, we may have a term of a coproduct that has as one of its options a term of the type we want.  In that case, we still have work to do.  By case analysis on the coproduct, we can say that \emph{if} the term we have is from the appropriate side of the coproduct then it's the one we want.  But then we have to go on to \emph{prove} that it will be from that side and not the other.  If we can't do that, then we've reduced the problem to constructing the term we want from a term of the \emph{other} side of this coproduct (which may or may not be easier than the original problem). 
+\end{itemize}
+
+If we can't do any of these, we will have to construct the term we want ourselves:
+\begin{itemize}
+\item To construct a term of a product type, such as $\type{A} \x \type{B}$, we must construct terms of each of the component types, $\term{a}:\type{A}$ and $\term{b}:\type{B}$.
+
+\item To construct a term of a coproduct type, such as $\type{A} \+ \type{B}$, we must construct a term of \emph{one} of the component types, either $\term{a}:\type{A}$ or $\term{b}:\type{B}$ -- but either will suffice.
+\end{itemize}
+
+But what about constructing a term of a function type?  Aside from the methods mentioned above, there are basically two ways to do this.  
+\begin{itemize}
+\item Perhaps we have two functions already available that can be composed together to produce the function we want.  That is, if we're trying to construct a function of some type 
+$\type{A} \to \type{C}$, then perhaps there's some type \type{B}, and some functions 
+$\term{f}:\type{A} \to \type{B}$ and
+$\term{g}:\type{B} \to \type{C}$, in which case $\term{g} \following \term{f}$ gives us the function we want.
+\item If we can't do that, we our remaining technique is to use the \terminology{Deduction theorem}.  
+To define a function of type 
+$\type{Y} \to \type{Z}$ we need to say what it does when it's given any term of type \type{Y}.  As long as we can always find something appropriate for it to do, then we've defined our function.  By this we mean that, given an arbitrary term of \type{Y}, it must be able to produce a term of \type{Z}.  
+
+This therefore reduces the problem of producing a term of type $\type{Y} \to \type{Z}$ given some premises to the problem of producing a term of type \type{Z} given those premises along with a term of \type{Y}.
+That is, if we were originally presented with the problem of proving
+\[
+\type{A}\andalso \type{B}\andalso \type{C} \ldots \tstile \type{Y} \to \type{Z}
+\]
+%(i.e. we were trying to construct a function of type $\type{Y} \to \type{Z}$ from inputs of types $\type{A}\andalso \type{B}\andalso \type{C} \ldots$) 
+then the Deduction theorem reduces this to the problem of proving
+\[
+\type{A}\andalso \type{B}\andalso \type{C} \ldots \type{Y} \tstile \type{Z}
+\]
+where the term of type \type{Y} we assume given is \emph{arbitrary} -- we can't assume anything special about it (e.g. if it's a coproduct type, we can't assume that it's from one side of the coproduct rather than the other).  In the above notation, the Deduction theorem is written:
+\[
+\frac
+{\type{A}\andalso \type{B}\andalso \type{C} \ldots \type{Y} \tstile \type{Z}
+}
+{\type{A}\andalso \type{B}\andalso \type{C} \ldots \tstile \type{Y} \to \type{Z}
+}
+\]
+\end{itemize}
+
+Note that when we are trying to derive a negated proposition $\NOT P$ from some premises, this corresponds to constructing a function of type $\type{P} \to \z$.  According to the Deduction theorem, to do this it is sufficient to add \type{P} to the premises and derive a contradiction, since we have:
+\[
+\frac
+{\type{A}\andalso \type{B}\andalso \type{C} \ldots \type{P} \tstile \type{0}
+}
+{\type{A}\andalso \type{B}\andalso \type{C} \ldots \tstile \type{P} \to \type{0}
+}
+\]
+which is exactly the constructively valid method of \emph{Reductio ad absurdum}.\footnote{
+While this form of \emph{Reductio ad absurdum} is constructively valid,  the \emph{Principle of Indirect Proof} is not
+: adding $\NOT P$ to the premises and deriving a contradiction doesn't give a constructive proof of $P$; rather, it gives a proof of $\NOT \NOT P$, which is constructively weaker.
+}
+
+By the Deduction theorem, whenever we have 
+$\type{A} \tstile \type{B}$ 
+we also have 
+$\tstile \type{A} \to \type{B}$, and so whenever we prove relative constructability
+\[
+\frac{\type{A} \tstile \type{B}}
+{\type{X} \tstile \type{Y}}
+\]
+this is equivalent to proving
+\[
+\type{A} \to \type{B}\andalso \type{X} 
+\;\tstile\; 
+\type{Y}
+\]
+Thus the relative constructability notation is just a more convenient way of expressing something we could already say without it (except in the statement of the Deduction theorem itself).  But since it is more convenient, and aligns nicely with a useful way of thinking about constructions, we will continue to use it in subsequent proofs.
+
+
+% \newpage
+
+\newpage
+\subsection{Rules involving $\AND$ and $\OR$}
+\label{sec:DoingLogic-ANDORrules}
+
+Some of the basic rules of classical logic have been taken as part of the definition of the interpretation of logic into HTT, and so we already know that they hold.  Some others follow very simply from the definitions we've given.
+
+
+
+
+The Introduction and Elimination rules for conjunction and disjunction were used in the definitions of the product and coproduct, and so they hold automatically:
+
+%$\AND$-introduction
+\begin{Theorem}[$\AND$-introduction]
+\[
+A\andalso B \tstile A \AND B 
+\]
+\[
+\term{a}:\type{A}\andalso 
+\term{b}:\type{B} 
+\tstile 
+\type{A} \x \type{B} 
+\]\end{Theorem}
+\begin{Proof}
+The definition of the product type (Section~\ref{}) says that a term of $\type{A} \x \type{B}$ consists of a pair $(\term{a}, \term{b})$, where $\term{a}:\type{A}$
+and
+$\term{b}:\type{B}$, so $\AND$-introduction corresponds to the term constructor for product types.
+\end{Proof}
+
+%$\AND$-elimination
+\begin{Theorem}[$\AND$-elimination]
+\[
+A \AND B \tstile A  \quad\quad\quad  A \AND B \tstile B  
+\]
+\[
+(\term{a}\andalso \term{b}): \type{A} \x \type{B} 
+\tstile 
+\type{A}
+  \quad\quad\quad 
+(\term{a}\andalso \term{b}): \type{A} \x \type{B} 
+\tstile 
+\type{B} 
+\]
+\end{Theorem}
+\begin{Proof}
+These correspond to the \emph{projectors} 
+$pr_1: \type{A} \x \type{B} \to \type{A}$
+and
+$pr_2: \type{A} \x \type{B} \to \type{B}$
+(defined in Section~\ref{}) which extract the first and second component respectively from a term 
+$(\term{a}, \term{b}):\type{A} \x \type{B}$.
+\end{Proof}
+
+
+%$\OR$-introduction
+\begin{Theorem}[$\OR$-introduction]
+\[
+A 
+\tstile 
+A \OR B  
+\quad\quad\quad  
+B 
+\tstile 
+A \OR B  
+\]
+\[
+\term{a}: \type{A}
+\tstile 
+\inl(\term{a}): \type{A} \+ \type{B} 
+  \quad\quad\quad 
+\term{b}: \type{B} 
+\tstile 
+\inr(\term{b}): \type{A} \+ \type{B} 
+\]\end{Theorem}
+\begin{Proof}
+These are the term constructors in the definition of the coproduct type.
+\end{Proof}
+
+
+%$\OR$-elimination
+\begin{Theorem}[$\OR$-elimination]
+\[
+A \IMPLIES Z\andalso 
+B \IMPLIES Z
+\tstile
+A \OR B \IMPLIES Z
+\]
+\[
+\term{g}_l:\type{A} \to \type{Z}\andalso
+\term{g}_r:\type{B} \to \type{Z} 
+\tstile
+\term{f}:(\type{A} \+ \type{B}) \to \type{Z} 
+\]
+\end{Theorem}
+\begin{Proof}
+This is the elimination rule in the definition of the coproduct type.
+\end{Proof}
+
+
+Some other rules are so trivial that they can be checked immediately by the reader, and so we won't write them out here.  In particular, the reader is left to verify:
+\begin{samepage}
+\begin{itemize} 
+%\item $\tstile A \IMPLIES A$
+
+\item $A \AND B \dashv \tstile B \AND A$ (commutativity of conjunction)
+
+\item $A \OR B \dashv \tstile B \OR A$  (commutativity of disjunction)
+
+\item $(A \AND B) \AND C \dashv \tstile A \AND (B \AND C)$ (associativity of conjunction)
+
+\item $(A \OR B) \OR C \dashv \tstile A \OR (B \OR C)$ (associativity of disjunction)
+
+\item $A \AND A \dashv \tstile A$ (idempotence of conjunction)
+
+\item $A \OR A \dashv \tstile A$ (idempotence of disjunction)
+\end{itemize}
+\end{samepage}
+
+
+
+Now let's look at how $\AND$ and $\OR$ interact.  We'll see that the basic classical rules for their interaction -- Absorption and Distributivity -- hold constructively as well.
+
+
+%Absorption1
+\begin{Theorem}[Absorption1]
+\[
+A \OR (A \AND B) \dashv \tstile A
+\]
+\[
+\type{A} \+ (\type{A} \x \type{B}) \dashv \tstile \type{A}
+\]
+\end{Theorem}
+\begin{Proof}
+The right-to-left direction is trivial -- this is just the injection of \type{A} into the coproduct.  For the left-to-right direction, we do case analysis on the coproduct: if we have $\inl(\term{a})$ then we have a term of \type{A}; if we have $\inr{(\term{a},\term{b})}$ then the projector $pr_1$ gives the term of \type{A}.
+\end{Proof}
+
+%Absorption2
+\begin{Theorem}[Absorption2]
+\[
+A \AND (A \OR B) \dashv \tstile A
+\]
+\[
+\type{A} \x (\type{A} \+ \type{B}) \dashv \tstile \type{A}
+\]
+\end{Theorem}
+\begin{Proof}
+Again, this follows by use of the projector from the product and the injection into the coproduct.
+\end{Proof}
+
+
+
+%Distributivity of $\OR$ over $\AND$
+\begin{Theorem}[Distributivity of $\OR$ over $\AND$]
+\[
+A \OR (B \AND C) \dashv \tstile (A \OR B) \AND (A \OR C)
+\]
+\[
+\type{A} \+ (\type{B} \x \type{C}) \dashv \tstile (\type{A} \+ \type{B}) \x (\type{A} \+ \type{C})
+\]
+\end{Theorem}
+\begin{Proof}
+For the left-to-right direction we do case analysis on the coproduct.
+\begin{itemize}
+\item if we have a term of \type{A} then we have left-injectors to produce terms of $(\type{A} \+ \type{B})$ and $(\type{A} \+ \type{C})$
+\item if we have a term of $(\type{B} \x \type{C})$ then the projectors give us terms of \type{B} and \type{C}, and then we have right-injectors to give terms of $(\type{A} \+ \type{B})$ and $(\type{A} \+ \type{C})$.
+\end{itemize}
+
+For the right-to-left direction, we can do two simultaneous case analyses on the two coproducts, giving four possibilities.\footnote{
+Alternatively we could write these as nested case analyses, first analysing the first coproduct and then, for each case of that, doing a case analysis of the second.
+}
+The term of the product we're given is then either $(\term{a},\term{a})$, $(\term{a},\term{c})$, $(\term{b},\term{a})$, or $(\term{b},\term{c})$  (for some terms \term{a}, \term{b}, \term{c} of the respective types).  In the first three cases we have a term of \type{A}; in the fourth case we can produce a term of $(\type{B} \x \type{C})$; so in any case we can produce a term of the required coproduct.
+\end{Proof}
+
+
+%Distributivity of $\AND$ over $\OR$
+\begin{Theorem}[Distributivity of $\AND$ over $\OR$]
+\[
+A \AND (B \OR C) \dashv \tstile (A \AND B) \OR (A \AND C)
+\]
+\[
+\type{A} \x (\type{B} \+ \type{C}) \dashv \tstile (\type{A} \x \type{B}) \+ (\type{A} \x \type{C})
+\]
+\end{Theorem}
+\begin{Proof}
+In each direction we can do case analysis on the coproduct we're given.  We always have either terms $\term{a}$ and $\term{b}$ or terms $\term{a}$ and $\term{c}$, from which we can construct the term required.
+\end{Proof}
+
+
+
+
+
+
+
+\newpage
+\subsection{Rules involving $\IMPLIES$}
+
+
+%Modus ponens
+
+The correspondence between \emph{modus ponens} and function application was part of the motivation to use the Curry-Howard correspondence to incorporate logic into our type theory, and so naturally it holds by definition:
+
+\begin{Theorem}[Modus ponens]
+\[
+A\andalso A \IMPLIES B \tstile B
+\]
+\[
+\term{a}:\type{A}\andalso \term{f}:\type{A} \to \type{B} \tstile \type{B}
+\]
+\end{Theorem}
+\begin{Proof}
+Given a function $\term{f}:\type{A} \to \type{B}$ and a term $\term{a}:\type{A}$, the result of applying \term{f} to \term{a} is, by definition, a term $\term{f}(\term{a}):\type{B}$.
+\end{Proof}
+
+
+
+
+
+%Transitivity of $\IMPLIES$
+\begin{Theorem}[Transitivity of $\IMPLIES$]
+\label{thm:Transitivity=>}
+\[
+A \IMPLIES B\andalso 
+B \IMPLIES C
+\tstile
+A \IMPLIES C
+\]
+\[
+\term{f}:\type{A} \to \type{B}\andalso
+\term{g}:\type{B} \to \type{C} 
+\tstile
+\term{g} \following \term{f}:\type{A} \to \type{C} 
+\]
+\end{Theorem}
+\begin{Proof}
+The function $\term{g} \following \term{f}$ is given by composing the provided functions $\term{f}$ and $\term{g}$, i.e. 
+$(\term{g} \following \term{f})(\term{a}) \DefinedAs \term{g}(\term{f}(\term{a}))$.  So transitivity of $\IMPLIES$ corresponds to composition of functions.
+\end{Proof}
+
+
+
+
+We used Currying and Uncurrying to define functions from product types.   Uncurrying says that, given a function of type 
+$\type{A} \to (\type{B} \to \type{C})$, we can define a function of type
+$(\type{A} \x \type{B}) \to \type{C}$
+which takes terms of the product type as its inputs.
+Currying says that any function from the product type has a corresponding curried version.  
+
+%Currying
+\begin{Theorem}[Currying]
+%\label{sec:DoingLogic-CurryingUncurrying}
+\[
+(A \AND B) \IMPLIES C 
+\tstile
+A \IMPLIES (B \IMPLIES C)
+\]
+\[
+\term{f}:(\type{A} \x \type{B}) \to \type{C}
+\tstile
+\term{g}:\type{A} \to (\type{B} \to \type{C})
+\]
+\end{Theorem}
+\begin{Proof}
+Given \term{f} as above, how do we define \term{g}?  What function $\term{g}_{\term{a}}:\type{B} \to \type{C}$ should it return when given an $\term{a}:\type{A}$ as input?  $\term{g}_{\term{a}}$ should map any $\term{b}:\type{B}$ to $f((a,b))$.  We can therefore define $\term{g}$ as:
+\[
+\term{g}(\term{a})(\term{b}) \DefinedAs \term{f}((\term{a},\term{b}))
+\]
+\end{Proof}
+
+
+%Uncurrying
+\begin{Theorem}[Uncurrying]
+\[
+A \IMPLIES (B \IMPLIES C)
+\tstile
+(A \AND B) \IMPLIES C 
+\]
+\[
+\term{g}:\type{A} \to (\type{B} \to \type{C})
+\tstile
+\term{f}:(\type{A} \x \type{B}) \to \type{C}
+\]
+\end{Theorem}
+\begin{Proof}
+Going in the opposite direction, if we have a function $\term{g}$ then we can define $\term{f}$ as follows: we first use the projectors to extract $\term{a}$ and $\term{b}$ from the term of $\type{A} \x \type{B}$ that it's given as input, then feed $\term{a}$ into $\term{g}$ to get some $\term{g}_{\term{a}}:\type{B} \to \type{C}$, and finally feed $\term{b}$ into $\term{g}_{\term{a}}$.  We can therefore define $\term{f}$ as:
+\[
+\term{f}((\term{a},\term{b}))
+\DefinedAs 
+\term{g}(\term{a})(\term{b}) 
+%
+%f((a,b)) \DefinedAs g(a)(b)
+\]
+\end{Proof}
+
+For completeness we ought to prove that currying and uncurrying are inverses to each other -- i.e. if we have a function $f:\type{A} \to (\type{B} \to \type{C})$, uncurry it to get a function from the product type, and then curry this, what we get at the end is the original $\term{f}$ (and vice versa).  However, it's fairly clear by inspection that this is the case.
+
+
+
+
+%Swap
+\begin{Theorem}[Swapping the order of function arguments]
+\label{thm:SwapFnInputs}
+\[
+A \IMPLIES (B \IMPLIES C)
+\tstile
+B \IMPLIES (A \IMPLIES C)
+\]
+\[
+\type{A} \to (\type{B} \to \type{C})
+\tstile
+\type{B} \to (\type{A} \to \type{C})
+\]
+\end{Theorem}
+\begin{Proof}
+This can be proved by an application of Uncurrying, then Commutativity of Conjunction, and then Currying.
+\end{Proof}
+
+
+
+Now let's try a more complicated example, just to confirm that we can make it work.
+%``{\L}ukasiewicz's axiom''
+%http://en.wikipedia.org/wiki/Hilbert-style_deduction_system#cite_ref-Tarski_2-0
+\begin{Theorem}[``{\L}ukasiewicz's axiom'']
+\[
+A \IMPLIES (B \IMPLIES C)
+\tstile
+(A \IMPLIES B) \IMPLIES (A \IMPLIES C)
+\]
+\[
+\term{g}: \type{A} \to (\type{B} \to \type{C})
+\tstile
+\term{h}: (\type{A} \to \type{B}) \to (\type{A} \to \type{C})
+\]
+\end{Theorem}
+\begin{Proof}
+By the Deduction Theorem (Section \ref{}) we have
+\[
+\frac{
+\type{A} \to (\type{B} \to \type{C}), \type{A} \to \type{B}
+\tstile
+\type{A} \to \type{C}
+}{
+\type{A} \to (\type{B} \to \type{C})
+\tstile
+(\type{A} \to \type{B}) \to (\type{A} \to \type{C})
+}
+\]
+and applying it again gives
+\[
+\frac{
+\type{A} \to (\type{B} \to \type{C}), \type{A} \to \type{B}, \type{A}
+\tstile
+\type{C}
+}{
+\type{A} \to (\type{B} \to \type{C}), \type{A} \to \type{B}
+\tstile
+\type{A} \to \type{C}
+}
+\]
+This top line is easily proved: given a term $\term{a}:\type{A}$ and a function $\term{f}: \type{A} \to \type{B}$ we can produce $\term{f}(\term{a}):\type{B}$.  Given a function 
+$\term{g}:\type{A} \to (\type{B} \to \type{C})$ we can produce 
+$\term{g}(\term{a}):\type{B} \to \type{C}$, and thus 
+$\term{g}(\term{a})(\term{f}(\term{a})):\type{C}$, as required.
+
+Thus the function 
+$\term{h}: (\type{A} \to \type{B}) \to (\type{A} \to \type{C})$
+that we were originally required to define, given a function
+$\term{g}: \type{A} \to (\type{B} \to \type{C})$, can be written as
+$
+\term{h} 
+\DefinedAs 
+[\term{f} \mapsto [\term{a} \mapsto \term{g}(\term{a})(\term{f}(\term{a}))]]
+$.
+\end{Proof}
+
+
+\subsection{Rules involving Negation}
+
+
+Since the type corresponding to  $\NOT P$ is just the function type $\type{P} \to \z$, many of the rules involving negation are just special cases of the rules involving implication that we proved above.
+
+%Modus Tollens
+\begin{Theorem}[Modus Tollens]
+\label{sec:DoingLogic-ModusTollens}
+\[
+A \IMPLIES B\andalso
+\NOT B
+\tstile
+\NOT A
+\]
+\[
+\type{A} \to \type{B}\andalso
+\type{B} \to \type{0}
+\tstile
+\type{A} \to \type{0}
+\]
+\end{Theorem}
+\begin{Proof}
+This is just an instance of function composition (Theorem \ref{thm:Transitivity=>}).
+\end{Proof}
+
+
+Since in constructive logic we cannot add and remove negation signs as freely as we can in classical logic, the rule of Contraposition splits into two rules, depending upon whether the consequent of the premise is negated or not.
+
+%``Positive'' Contraposition of $\IMPLIES$
+\begin{Theorem}[``Positive'' Contraposition of $\IMPLIES$]
+\[
+A \IMPLIES B
+\tstile
+\NOT B \IMPLIES \NOT A
+\]
+\[
+\type{A} \to \type{B}
+\tstile
+((\type{B} \to \z) \to (\type{A} \to \z))
+\]
+\end{Theorem}
+\begin{Proof}
+An application of the Deduction Theorem (Section \ref{}) gives:
+\[
+\frac{
+\type{A} \to \type{B}\andalso \type{B} \to \z
+\tstile
+\type{A} \to \z
+}{
+\type{A} \to \type{B}
+\tstile
+((\type{B} \to \z) \to (\type{A} \to \z))
+}
+\]
+and the first line follows by function composition.
+
+
+%
+%We define \term{g} as $\term{g}(\bar{\term{b}}) \DefinedAs \bar{\term{b}} \following \term{f}$.
+\end{Proof}
+
+
+%``Negative'' Contraposition of $\IMPLIES$
+\begin{Theorem}[``Negative'' Contraposition of $\IMPLIES$]
+\[
+A \IMPLIES \NOT B
+\tstile
+B \IMPLIES \NOT A
+\]
+\[
+\type{A} \to (\type{B} \to \z)
+\tstile
+\type{B} \to (\type{A} \to \z)
+\]
+\end{Theorem}
+\begin{Proof}
+This is an instance of swapping function inputs (Theorem \ref{thm:SwapFnInputs}).
+\end{Proof}
+
+
+%Contraposition of $\tstile$
+\begin{Theorem}[Contraposition of $\tstile$]
+\[
+\frac{A \tstile B}
+{\NOT B \tstile \NOT A}
+\]
+
+\[
+\frac{\type{A} \tstile \type{B}}
+{\bar{\term{b}}:\type{B}\to \z \tstile \bar{\term{a}}:\type{A} \to \z}
+\]
+\end{Theorem}
+\begin{Proof}
+By the Deduction theorem
+\[
+\frac{
+\type{A} \tstile \type{B}
+}{
+\tstile \type{A} \to \type{B}
+}
+\]
+and composing this function with ${\bar{\term{b}}}$ (i.e. by applying the rule of \emph{modus tollens}) we get a function $\bar{\term{a}}:\type{A} \to \z$.
+%
+%To define $\bar{\term{a}}$ we need to say what it does for any input $\term{a}:\type{A}$.  
+%Since we have $\type{A} \tstile \type{B}$, we know that 
+%a term $\term{b}:\type{B}$ can be constructed from $\term{a}$.
+%Then since we're given $\bar{\term{b}}:\type{B}\to \z$ as a premise we simply apply it 
+%%$\bar{\term{b}}$ 
+%to this $\term{b}$ to get 
+%$\bar{\term{b}}(\term{b}):\z$, which is then the output of $\bar{\term{a}}$.
+\end{Proof}
+
+%Non-Contradiction
+The Principle of Non-Contradiction was one of our guides in defining negation, and is easily verified:
+
+\begin{Theorem}[Non-Contradiction]
+\label{thm:Non-Contradiction}
+\[
+\tstile
+\NOT (P \AND \NOT P)
+\]
+\[
+\tstile
+\type{P}\x(\type{P}\to\z) \to \z
+\]
+\end{Theorem}
+\begin{Proof}
+A term of $\type{P} \x (\type{P}\to\z)$ is a pair 
+$(\term{p}:\type{P}, 
+\bar{\term{p}}:\type{P} \to \z)$.
+So by function application, we have
+$\bar{\term{p}}(\term{p}): \z$ by definition.  That is, non-contradiction becomes an instance of \emph{modus ponens}.
+\end{Proof}
+
+
+Although the Law of Excluded Middle does not hold as a rule in our constructive logic, this does \emph{not} mean that we actively \emph{deny} the validity of that rule -- we do not assert of any particular proposition $P$ that $\NOT(P \OR \NOT P)$ holds of it.  Indeed, we can prove that it is \emph{contradictory} to do so.
+%\footnote{
+%In the language of ``paracomplete'' logics, we do not assert that any particular $P$ is ``gappy'' (i.e. fails to have a truth value).
+%}  
+%Double Negation of LEM
+\begin{Theorem}[Double Negation of LEM]
+\label{thm:NOT-NOT-LEM}
+\[
+\tstile \; 
+\NOT \NOT (P \OR \NOT P)
+\]
+\[
+\tstile \; 
+((\type{P} \+ (\type{P} \to \z)) \to \z) \to \z
+\]
+\end{Theorem}
+\begin{Proof}
+By the Deduction theorem, 
+\[
+\frac{
+(\type{P} \+ (\type{P} \to \z)) \to \z
+\;\;\tstile \;\;
+ \z
+}{
+\tstile \;\;
+((\type{P} \+ (\type{P} \to \z)) \to \z) \to \z
+}
+\]
+So all that remains is to prove the top line.
+From a function
+$\term{f}:(\type{P} \+ (\type{P} \to \z)) \to \z$ we can derive a function 
+%$\bar{\term{p}}$defined as
+$\bar{\term{p}} \DefinedAs
+\term{f} \following \inl$ of type $\type{P} \to \z$.  
+Similarly, we can define 
+$\bar{\bar{\term{p}}} \DefinedAs
+\term{f} \following \inr$ of type $(\type{P} \to \z) \to \z$.  But we can then apply $\bar{\bar{\term{p}}}$ to 
+$\bar{\term{p}}$ to get 
+$\bar{\bar{\term{p}}}(\bar{\term{p}}):\z$.
+
+
+
+%From the premise of the top line we will derive a witness to $(\NOT P \AND \NOT \NOT P)$, which is contradictory.
+
+
+
+\end{Proof}
+
+
+
+
+
+
+
+\subsection{The rule of Explosion and related results}
+
+%Explosion
+The rule of Explosion says that any arbitrary conclusion follows from contradictory premises.
+
+\begin{Theorem}[Explosion]
+\[
+P \AND \NOT P
+\tstile
+A
+\]
+\[
+(\term{p}, \bar{\term{p}}):\type{P} \x (\type{P} \to \z)
+\tstile
+\type{A}
+\]
+\end{Theorem}
+\begin{Proof}
+By the Principle of Non-contradiction (Theorem~\ref{thm:Non-Contradiction}) we get 
+$\bar{\term{p}}(\term{p}):\z$.  From the definition of the Zero type, for any \type{A} there is a trivial function of type $\type{0} \to \type{A}$, which we will call $\term{!}_{\type{A}}$.  So 
+$\term{!}_{\type{A}}(\bar{\term{p}}(\term{p})):\type{A}$.
+
+(For a discussion on the constructive justification of Explosion, see Section~\ref{}.)
+\end{Proof}
+
+
+%$A \IMPLIES B$ with false $A$
+\begin{Theorem}[$A \IMPLIES B$ with false $A$]
+\label{thm:A=>B-FalseA}
+\[
+\NOT A
+\tstile
+A \IMPLIES B
+\]
+\[
+\bar{\term{a}}:\type{A} \to \type{0}
+\tstile
+\term{f}:\type{A} \to \type{B}
+\]
+\end{Theorem}
+\begin{Proof}
+Using $\term{!}_{\type{B}}: \type{0} \to \type{B}$ from Explosion, we define 
+$\term{f} \DefinedAs \term{!}_{\type{B}} \following \bar{\term{a}}$.
+\end{Proof}
+
+
+%$A \IMPLIES B$ with true $B$
+\begin{Theorem}[$A \IMPLIES B$ with true $B$]
+\label{thm:A=>B-TrueB}
+\[
+B
+\tstile
+A \IMPLIES B
+\]
+\[
+\term{b}:\type{B}
+\tstile
+\term{k}_{\term{b}}:\type{A} \to \type{B}
+\]
+\end{Theorem}
+\begin{Proof}
+Since we are given $\term{b}:\type{B}$ we can define the constant function $\term{k}_{\term{b}}:\type{A} \to \type{B}$ that sends every 
+$\term{a}:\type{A}$ to $\term{b}$.  (This result doesn't require Explosion, but we include it here to keep the subsequent discussion self-contained.)
+\end{Proof}
+
+These two rules are often called the \terminology{Paradoxes of the Material Conditional}, since they do not fit with our intuitive understanding of $\IMPLIES$ as an ``if \ldots then \ldots'' relation -- we can have $A \IMPLIES B$ even when there is no connection at all between the ideas expressed by the propositions $A$ and $B$.  The fact that we represent $\IMPLIES$ using functions $\type{A} \to \type{B}$, which convert witnesses of \type{A} into witnesses of \type{B}, seemed to hint that we would end up with a ``relevant logic''-style connective that requires a real connection between the antecedent and the consequent.  However, we see here that $\to$ behaves truth-functionally, just like the material conditional: we have a witness to $A \IMPLIES B$ whenever we have a witness to $B$ or a witness to $\NOT A$.  (However, as we'll see shortly, it is not constructively equivalent to the classical reformulations of the material conditional using $\AND$, $\OR$ and $\NOT$).
+
+
+
+
+
+
+
+
+%Disjunctive Syllogism
+\begin{Theorem}[Disjunctive Syllogism]
+\[
+A \OR B\andalso
+\NOT A
+\tstile
+B
+\]
+\[
+\type{A} \+ \type{B}\andalso
+\bar{\term{a}}:\type{A} \to \type{0}
+\tstile
+\type{B}
+\]
+\end{Theorem}
+\begin{Proof}
+We proceed by case analysis on $\type{A} \+ \type{B}$.  We either have a term $\inl(\term{a})$ for some $\term{a}:\type{A}$, 
+or a term $\inr(\term{b})$ for some $\term{b}:\type{B}$.
+\begin{itemize}
+\item If we have $\inl(\term{a})$ then 
+$(\term{!}_{\type{B}} \following \bar{\term{a}})(\term{a})$ 
+gives a term of $\type{B}$ (where $\term{!}_{\type{B}}$ is provided by Explosion).
+
+\item If we have $\inr(\term{b})$ then we have $\term{b}:\type{B}$ as required.
+\end{itemize}
+Thus either way we can return a term of \type{B}.
+\end{Proof}
+
+As we noted in Section \ref{}, in the presence of $\OR$-introduction (which in our type theory is just the term constructor for coproducts), Disjunctive Syllogism and Explosion can be derive from each other.  Thus if we have doubts about the constructive justification for one then we should have the same doubts about the other -- or, alternatively, if we think one has a plausible constructive justification then we can use this to justify the other.
+
+
+\newpage
+
+\subsection{Rules involving \type{0} and \type{1}}
+
+The Zero type is by definition uninhabited, and we can therefore never produce a term of it (unless we have inconsistent premises).  The Unit type is by definition uniquely inhabited, and so we can always produce a term of it, namely the single term $\ast:\type{1}$.  Since inhabitation of a type corresponds to truth of a proposition, these types can therefore be interpreted as corresponding to propositions that are known to be false and true respectively (but which have no content beyond this fact).  We can therefore interpret a few identities that are commonly written with $T$ and $F$ standing for generic true and false propositions.  We present a few examples:
+
+\begin{Theorem}
+\[
+T \AND A = A
+\]
+\[
+\type{1} \x \type{A} 
+\;\;\dashv \tstile \;\;
+\type{A}
+\]
+\end{Theorem}
+\begin{Proof}
+A term of $\type{1} \x \type{A}$ must be of the form $(\ast,\term{a})$ for some $\term{a}:\type{A}$, so from any term $(\ast,\term{a})$ we can recover $\term{a}$, and from any \term{a} we can construct $(\ast,\term{a})$.
+\end{Proof}
+
+\begin{Theorem}
+\[
+T \OR A = T
+\]
+\[
+\type{1} \+ \type{A} 
+\;\;\dashv \tstile \;\;
+\type{1}
+\]
+\end{Theorem}
+\begin{Proof}
+The left-to-right direction is trivial, since we can always construct a term of \type{1} with no premises.  The right-to-left direction is also trivial, since we can always construct $\inl(\ast):\type{1} \+ \type{A}$.
+\end{Proof}
+
+\begin{Theorem}
+\[
+F \OR A = A
+\]
+\[
+\type{0} \+ \type{A} 
+\;\;\dashv \tstile \;\;
+\type{A}
+\]
+\end{Theorem}
+\begin{Proof}
+The right-to-left direction is given by $\inr$.  The left-to-right direction is by case analysis: we either have the term $\term{a}:\type{A}$ we require, or else we can apply $\term{!}_{\type{A}}:\z \to \type{A}$.
+\end{Proof}
+
+
+
+\subsection{Equivalence of DNE and LEM}
+
+Neither the rule of Double Negation Elimination nor the Law of Excluded Middle hold as rules in our constructive logic.  We can therefore sometimes prove that certain constructions are impossible by showing that \emph{if} they were possible they would enable us to prove the constructive validity of these rules.  In general we don't produce \emph{counterexamples} to invalid rules, as we do in classical logic,\footnote{
+Question: What are counterexamples in constructive logic?  Heyting algebras with particular features?
+}
+so these proofs are the closest we can come to showing that an inference is not constructively valid.
+
+We can write these ``constructive counterexamples'' using the relative constructability notation introduced in Section \ref{sec:DoingLogic-Notation}: we show 
+$\type{A} \not\tstile \type{B}$ by proving
+\[
+\frac{\type{A} \tstile \type{B}
+}{
+(\type{P} \to \z) \to \z \tstile \type{P}}
+%
+\quad\quad\mbox{ or }\quad\quad
+%\]
+%or
+%\[
+\frac{\type{A} \tstile \type{B}
+}{
+\tstile \type{P} + (\type{P} \to \z)}
+\]
+
+We might now wonder whether a constructive counterexample that results in DNE is different from one that ends in LEM -- they both show that the inference is not constructively valid, but do they do so in essentially different ways?  In this section we will show that they are equivalent, because DNE and LEM can be proved from each other.
+
+%LEM $\IMPLIES$ DNE
+\begin{Theorem}[LEM $\IMPLIES$ DNE]
+\[
+\frac{
+\tstile \type{P} + (\type{P} \to \z)
+}{
+(\type{Q} \to \z) \to \z \tstile \type{Q}
+}
+\]
+\end{Theorem}
+\begin{Proof}
+If LEM holds then in particular we have 
+$\tstile \type{Q} + (\type{Q} \to \z)$.  That is, from no premises we can construct something that is either a term of \type{Q} or a term of $\type{Q} \to \z$.  We then reason by case analysis to prove $(\type{Q} \to \z) \to \z \tstile \type{Q}$: we either have a term of $\type{Q}$ already, in which case there is nothing more to prove;  or we have a term of $(\type{Q} \to \z)$ in which case we apply $(\type{Q} \to \z) \to \z$ to get a contradiction, from which we can derive a term of \type{Q} by  Explosion.
+\end{Proof}
+
+
+%DNE $\IMPLIES$ LEM
+\begin{Theorem}[DNE $\IMPLIES$ LEM]
+\[
+\frac{
+(\type{Q} \to \z) \to \z \tstile \type{Q}
+}{
+\tstile \type{P} + (\type{P} \to \z)
+}
+\]
+\end{Theorem}
+\begin{Proof}
+We have seen in Theorem \ref{thm:NOT-NOT-LEM} that we can constructively prove the Double Negation of LEM, $\NOT \NOT (P \OR \NOT P)$
+\[
+((\type{P} + (\type{P} \to \z)) \to \z) \to \z
+\]
+Thus by Double Negation Elimination we obtain LEM itself.
+\end{Proof}
+
+
+\subsection{Differences between Classical and Constructive logic}
+\label{sec:DoingLogic-MoreResults}
+
+Now we've covered the basics, let's explore some of the ways our constructive logic is similar and different from classical logic.
+
+
+\subsubsection{Relationship between $A \IMPLIES B$, $(\NOT A) \OR B$, and $\NOT (A \AND \NOT B)$}
+
+Classically, since $A \IMPLIES B$ is just a truth function, we can define it with $\AND$, $\OR$, and $\NOT$ in at least two different but logically equivalent ways, as $(\NOT A) \OR B$, and $\NOT (A \AND \NOT B)$.  How do these compare constructively?
+
+\begin{Theorem}
+\[
+(\NOT A) \OR B
+\tstile
+A \IMPLIES B
+\]
+\[
+(\type{A} \to \z) \+ \type{B}
+\tstile
+\type{A} \to \type{B}
+\]
+\end{Theorem}
+\begin{Proof}
+By case analysis: we either have a function 
+$\bar{\term{a}}:\type{A} \to \z$ or a term $\term{b}:\type{B}$, and we have seen in Theorems \ref{thm:A=>B-FalseA} and \ref{thm:A=>B-TrueB} that we can construct a term of $\type{A} \to \type{B}$ from either of these.
+\end{Proof}
+
+\begin{Theorem}
+\[
+A \IMPLIES B
+\tstile
+\NOT (A \AND \NOT B)
+\]
+\[
+\term{f}:\type{A} \to \type{B}
+\tstile
+\term{g}:(\type{A} \x (\type{B} \to \z)) \to \z
+\]
+\end{Theorem}
+\begin{Proof}
+We define $\term{g}:(\type{A} \x (\type{B} \to \z)) \to \z$ as
+%
+%
+%We need to define a function \term{g} that, when given an 
+%$\term{a}:\type{A}$ and a 
+%$\bar{\term{b}}:\type{B} \to \z$
+%returns a term of $\z$.  We can define this as
+\[
+\term{g}(\term{a})(\bar{\term{b}}) 
+\DefinedAs 
+\bar{\term{b}}(\term{f}(\term{a}))
+\]
+\end{Proof}
+
+
+This shows that
+\[
+(\type{A} \to \z) \+ \type{B}
+\;\;\tstile\;\;
+\type{A} \to \type{B}
+\;\;\tstile\;\;
+(\type{A} \x (\type{B} \to \z)) \to \z
+\]
+However, the reverse constructions \emph{cannot} be carried out constructively: if they could, then we would have either Double Negation Elimination or the Law of Excluded Middle, which we know is not the case.  Let's prove this now.
+
+\begin{Theorem}
+\[
+\frac{
+\type{A} \to \type{B}
+\;\;\tstile\;\;
+(\type{A} \to \z) \+ \type{B}
+}{
+\tstile (\type{A} \to \z) \+ \type{A}
+}
+\]
+\end{Theorem}
+\begin{Proof}
+If the construction on the top line can be carried out for any arbitrary types \type{A} and \type{B} then we have in particular
+$\type{A} \to \type{A}
+\tstile
+(\type{A} \to \z) \+ \type{A}$.  But we always have the identity function 
+$\type{A} \to \type{A}$, so we require no further premises in order to define it.  Thus we obtain the Law of Excluded Middle.
+\end{Proof}
+
+
+%\newpage
+\begin{Theorem}
+\[
+\frac{
+(\type{A} \x (\type{B} \to \z)) \to \z
+\;\;\tstile\;\;
+\type{A} \to \type{B}
+}{
+(\type{B} \to \z) \to \z
+\;\;\tstile\;\;
+\type{B}
+}
+\]
+\end{Theorem}
+\begin{Proof}
+If the construction on the top line can be carried out for any arbitrary types \type{A} and \type{B} then we have in particular
+$(\type{1} \x (\type{B} \to \z)) \to \z
+\tstile
+\type{1} \to \type{B}$,
+where \type{1} is the Unit type.  But it is clear that
+$
+(\type{B} \to \z) \to \z
+\tstile
+(\type{1} \x (\type{B} \to \z)) \to \z
+$
+and
+$\type{1} \to \type{B} \tstile \type{B}$.  Putting these together, we get the required conclusion, namely Double Negation Elimination.
+
+\end{Proof}
+
+So, constructively, these three propositions are strictly ordered in strength:  the strongest is $(\NOT A) \OR B$, 
+then $A \IMPLIES B$ is intermediate in strength, and 
+$\NOT (A \AND \NOT B)$ is strictly weaker than the other two.\footnote{
+Also, note that we can prove 
+$(\type{A} \to \z) \+ \type{B}
+\tstile
+(\type{A} \x (\type{B} \to \z)) \to \z$
+directly without going via $\type{A} \to \type{B}$, by a case analysis on the coproduct, and that this direct construction therefore does not depend upon Explosion.
+}
+
+
+
+
+\subsubsection{Double Negation Introduction}
+
+Although in constructive logic we don't have Double Negation Elimination (DNE) as a rule, we can prove Double Negation Introduction (DNI) as a theorem:
+\begin{Theorem}
+\label{thm:DNI}
+\[
+A 
+\tstile 
+\NOT \NOT A
+\]
+\[
+\type{A}
+\tstile 
+(\type{A} \to\z)\to\z
+\]
+\end{Theorem}
+\begin{Proof}
+This follows immediately from the Deduction theorem and the Principle of Non-contradiction.
+\end{Proof}
+
+The function $\bar{\bar{\term{a}}}:(\type{A} \to\z)\to\z$ that we obtain from a given $\term{a}:\type{A}$ could be called $\term{evaluate-at-a}$, since we define 
+\[
+\bar{\bar{\term{a}}}(\bar{\term{a}}) \DefinedAs
+\bar{\term{a}}(\term{a})
+\]
+
+%must be a function that takes any 
+%$\bar{\term{a}}:\type{A} \to\z$ and returns a term of $\z$.  We can do this by evaluating 
+%$\bar{\term{a}}$ at $\term{a}$.  We could therefore rename $\bar{\bar{\term{a}}}$ as 
+
+This is directly analogous with the relationship between a vector space $V$ and its double-dual vector space $V^{\ast\ast}$.  Recall that for any vector space $V$ the dual space $V^{\ast}$ consists of linear functions $f:V\to \RR$ (or to whatever field $V$ is defined over).  Thus for any vector $v \in V$ there is an element $\hat{v} \in V^{\ast\ast}$ (i.e. a linear function $\hat{v}: V^{\ast} \to \RR$) defined by
+\[
+%\forall f \in V^{\ast}, 
+\hat{v}(f) \DefinedAs f(v)
+\]
+i.e. $\hat{v}$ is like an ``evaluate at $v$'' operation.
+
+% \newpage
+%\subsubsection{Generalising DNI}
+%
+%\[
+%A
+%\tstile
+%(A \IMPLIES B) \IMPLIES B
+%\]
+%\[
+%\term{a}:\type{A}
+%\tstile 
+%((\type{A} \to \type{B}) \to \type{B})
+%\]
+%Nothing about the above proof of DNI referred to \type{0} in particular, and so the argument can immediately be generalised to any other type \type{B}.  The required function takes any $\term{f}:\type{A} \to \type{B}$ and evaluates it at the given term $\term{a}:\type{A}$ to give 
+%$\term{f}(\term{a}):\type{B}$.
+%
+%We could again call this 
+%$\term{evaluate-at-a}$, but we should be careful: this is not \emph{the same} function that we defined in the proof of DNI, since it's of a different type -- it's of type
+%$((\type{A} \to \type{B}) \to \type{B})$ (for some particular \type{B})
+%whereas that one was of type
+%$((\type{A} \to \type{0}) \to \type{0})$.
+%We can define such a function for any output type \type{Z}, of course, but because of the strictness of the type system each of these will be a different function, each one of which does the job of evaluating functions at \type{a} within its own private domain.
+%
+%Naturally, we want to overcome this petty distinction, since each of these functions does essentially the same thing.  We will be able to do this later\footnote{See Section~\ref{}}, when we have introduced \terminology{type polymorphism} -- then we'll be able to define a function that can take any function out of \type{A} as input and evaluate it at a given $\term{a}$.
+%
+%We might also wonder (restricting our attention to a particular type \type{B} for now) whether we can generalise in a different direction.
+%Rather than being stuck with a particular value \term{a} at which to evaluate functions, can we define a new function that takes any term $\term{x}:\type{A}$ as input and returns the specific $\term{evaluate-at-x}$ function as output?  The answer is yes, we can.  But we won't do this now: we'll come back to this question later\footnote{Section~\ref{}}, in response to a much broader question.
+
+
+
+
+
+
+
+
+%%% For more examples of constructively valid and invalid classical tautologies, see Section 9 of http://planetmath.org/intuitionisticlogic
+
+%%% Also, run through the list of https://en.wikipedia.org/wiki/Rule_of_inference and see which hold.
+
+%%% See also:
+%%% https://en.wikipedia.org/wiki/Tautology_(logic)
+%%% https://en.wikipedia.org/wiki/Axiomatization_of_Boolean_algebras#Axiomatics
+
+
+
+\subsubsection{Triple Negation}
+
+Although we cannot eliminate double negations \emph{in general}, this theorem shows that we can eliminate them when they occur directly in front of negated propositions.
+
+\begin{Theorem}
+\[
+\NOT\NOT\NOT A
+\tstile
+\NOT A
+\]
+\[
+\term{f}:((\type{A} \to \z) \to \z) \to \z
+\tstile
+\term{g}:\type{A} \to \z
+\]
+\end{Theorem}
+\begin{Proof}
+By the Deduction theorem, 
+\[
+\frac{
+((\type{A} \to \z) \to \z) \to \z \andalso \type{A}
+\tstile
+\z
+}{
+((\type{A} \to \z) \to \z) \to \z
+\tstile
+\type{A} \to \z
+}
+\]
+so all that remains is to prove the top line, i.e. to prove that the premises are contradictory.
+
+We saw in Theorem \ref{thm:DNI} that from any $\term{a}:\type{A}$ we can construct $\bar{\bar{\term{a}}}: (\type{A} \to \z) \to \z$.  Thus from the premises of the top line we have 
+$(\type{A} \to \z) \to \z$
+and 
+$((\type{A} \to \z) \to \z) \to \z$, and so by \emph{modus ponens} we have the required contradiction.
+\end{Proof}
+
+
+%A standard way to prove this in classical logic is to assume $A$ for proof by contradiction; derive $\NOT\NOT A$ from $A$ by DNI; then since we have both $\NOT\NOT\NOT A$ (premise) and $\NOT\NOT A$ (derived from $A$) we get a contradiction; this contradiction followed from the assumption of $A$, so we have proved $\NOT A$.  Thus $\NOT\NOT\NOT A   \tstile  \NOT A$ as required.
+%
+%The proof in our constructive logic is similar.  But since our aim here is to define a function 
+%$\bar{\term{a}}:\type{A} \to \z$, 
+%we can skip the \emph{assume $A$ for contradiction} step; to define $\bar{\term{a}}$ we need to say what it will do for any input $\term{a}:\type{A}$; thus the $\term{a}$ is \emph{provided}, not \emph{assumed}.\footnote{
+%TODO: There's probably a better way to explain this.
+%}
+%
+%So what does our \term{g} do when given an $\term{a}:\type{A}$?  We can follow the steps of the classical proof exactly.  First it uses that \term{a} to construct a term $\bar{\bar{\term{a}}}:((\type{A} \to \z) \to \z)$ by DNI; then it applies the given function \term{f} 
+%to map $\bar{\bar{\term{a}}}$ to a term of $\z$ (i.e. a contradiction); this term of $\z$ is then the output.
+%
+%We can set out the two proofs side-by-side to see the similarity:
+%
+%
+%\begin{table}[h]
+%\centering
+%\begin{tabular}{|r|l|}
+%\hline
+%Classical proof	&	Constructive proof\\
+%\hline
+%$\NOT\NOT\NOT A$ \quad [\emph{premise}]		
+%&		$\term{f}:((\type{A} \to \z) \to \z) \to \z$ \quad [\emph{given}]
+%
+%\\
+%Assume $A$ for contradiction	
+%&		$\term{a}:\type{A}$ \quad [\emph{input to} \term{g}]	
+%\\
+%Derive $\NOT\NOT A$ from $A$ by DNI		
+%&		Construct $\bar{\bar{\term{a}}}:((\type{A} \to \z) \to \z)$ from \term{a} by DNI
+%\\
+%$\NOT\NOT A$ and $\NOT\NOT\NOT A$ -- contradiction	
+%&		Apply \term{f} to $\bar{\bar{\term{a}}}$ to get 
+%$\term{f}(\bar{\bar{\term{a}}}): \z$
+%\\
+%$\ABSURDITY$ derived from assumption of $A$		
+%&		This defines $\term{g}:\type{A} \to \z$
+%\\
+%$\NOT\NOT\NOT A   \tstile  \NOT A$		
+%&		
+%$((\type{A} \to \z) \to \z) \to \z 
+%\tstile
+%\type{A} \to \z$
+%\\		
+%\hline
+%\end{tabular}
+%\end{table}
+%
+%
+
+
+
+
+
+
+
+
+
+%\newpage
+\subsection{de Morgan's laws}
+\label{sec:DoingLogic-deMorgan}
+
+de Morgan's laws relate certain expressions involving $\AND$, $\OR$, and $\NOT$.  Since our logic is constructive logic we have to be a bit more careful around negations, and so we have more relationships to check than we would in classical logic:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{c c c }
+$(A \AND B)$					&$\dashv \; \tstile$ 	&$\NOT(\NOT A \OR \NOT B)$ \\
+$(\NOT A \AND \NOT B)$ 	 	&$\dashv \; \tstile$ 	&$\NOT(A \OR B)$ \\
+$\NOT(A \AND B)$  				&$\dashv \; \tstile$ 	&$(\NOT A \OR \NOT B)$ \\
+$\NOT (\NOT A \AND \NOT B)$	&$\dashv \; \tstile$ 	&$(A \OR B)$
+\end{tabular}
+\end{table}
+These all hold classically, of course, but we must check all 8 of them to see which hold constructively and which do not.  As we'll see, for the laws that do hold the required constructions are quite  straightforward\footnote{
+Despite the rather complex presentation in the HoTT Book (p. 42).
+}
+
+In each case we'll write the classical statement (for which the entailments hold in both directions) followed by the constructive version (for which, in some cases, only one direction of entailment holds).
+
+
+\subsubsection{First de Morgan Law}
+\begin{Theorem}[First de Morgan Law]
+\[
+(A \AND B)
+\dashv \tstile 
+\NOT(\NOT A \OR \NOT B)
+\]
+\[
+(\term{a},\term{b}):(\type{A} \x \type{B})
+\not\dashv \tstile 
+\term{g}:((\type{A} \to \z) \+ (\type{B} \to \z)) \to \z
+\]
+\end{Theorem}
+\begin{Proof}
+$\tstile$: Given $\term{a}:\type{A}$ and $\term{b}:\type{B}$ we can define the function \term{g} by case analysis on its input: if its input is a term of $\type{A} \to \z$ then it applies this to \term{a}, whereas if its input is a term of $\type{B} \to \z$ then it applies this to \term{b}.
+
+$\not\dashv$: This direction is not constructively valid: if we could carry out this construction then we could use it to prove that DNE is constructively valid:
+
+\begin{Lemma}
+\[
+\frac{
+((\type{A} \to \z) \+ (\type{B} \to \z)) \to \z
+\;\;\tstile \;\;
+\type{A} \x \type{B}
+}{
+(\type{A} \to \z) \to \z
+\;\; \tstile \;\; 
+\type{A}
+}
+\]
+\end{Lemma}
+\begin{Proof}
+If the top line holds for arbitrary types \type{A} and \type{B} then in particular we have 
+\[
+((\type{A} \to \z) \+ (\type{1} \to \z)) \to \z
+\;\;\tstile \;\;
+\type{A} \x \type{1}
+\]
+It is then a simple matter to see that the left side of the turnstile is equivalent to $(\type{A} \to \z) \to \z$, while the right side is equivalent to $\type{A}$.
+\end{Proof}
+Thus, since DNE is \emph{not} constructively valid, nor is this direction of the First de Morgan Law.
+
+\end{Proof}
+
+
+
+\subsubsection{Second de Morgan Law}
+\begin{Theorem}[Second de Morgan Law]
+\[
+(\NOT A \AND \NOT B)
+\dashv \tstile
+\NOT(A \OR B)
+\]
+\[
+(\bar{\term{a}}, \bar{\term{b}}):((\type{A} \to \z) \x (\type{B} \to \z))
+\dashv \tstile 
+\term{g}:(\type{A} \+ \type{B}) \to \z
+\]\end{Theorem}
+\begin{Proof}
+$\tstile$: Given $\bar{\term{a}}:\type{A} \to \z$ and $\bar{\term{b}}:\type{B} \to \z$, we define the function \term{g} by case analysis: it applies either $\bar{\term{a}}$ or $\bar{\term{b}}$ to its input.
+
+$\dashv$: Given a function $\term{g}:(\type{A} \+ \type{B}) \to \z$, we define $\bar{\term{a}}:\type{A} \to \z$ and $\bar{\term{b}}:\type{B} \to \z$ as follows:
+\[
+\bar{\term{a}} \DefinedAs \term{g} \following \inl \quad \quad
+\bar{\term{b}} \DefinedAs \term{g} \following \inr
+\]
+(Note that this is a generalisation of the technique we used in Theorem \ref{thm:NOT-NOT-LEM}.)
+\end{Proof}
+
+
+
+\subsubsection{Third de Morgan Law}
+\begin{Theorem}[Third de Morgan Law]
+\[
+\NOT(A \AND B)
+\dashv \tstile 
+(\NOT A \OR \NOT B)
+\]
+\[
+\term{f}:(\type{A} \x \type{B}) \to \z
+\dashv \not\tstile 
+%\term{g}:
+((\type{A} \to \z) \+ (\type{B} \to \z))
+\]
+\end{Theorem}
+\begin{Proof}
+$\not\tstile$: This direction is not constructively valid.
+The function \term{f} can only be applied to pairs $(\term{a}, \term{b})$.  From this, we cannot construct a function $\type{A} \to \z$, since we have no way of creating an element of an arbitrary type \type{B} given only a term of \type{A} as input.  Likewise, we can't construct a function $\type{B} \to \z$.  Thus we cannot construct a term of the coproduct
+$((\type{A} \to \z) \+ (\type{B} \to \z))$.
+
+$\dashv$: By case analysis we either have a term $\bar{\term{a}}:\type{A} \to \z$ or a term $\bar{\term{b}}:\type{B} \to \z$, and either of these is sufficient to construct a function $(\type{A} \x \type{B}) \to \z$.  
+If we have $\bar{\term{a}}$ we define 
+$\term{f} \DefinedAs \bar{\term{a}} \following pr_1$, 
+whereas
+if we have $\bar{\term{b}}$ we define 
+$\term{f} \DefinedAs \bar{\term{b}} \following pr_2$.
+\end{Proof}
+
+
+
+
+
+
+\subsubsection{Fourth de Morgan Law}
+\begin{Theorem}[Fourth de Morgan Law]
+\[
+\NOT (\NOT A \AND \NOT B)
+\;\;\dashv \tstile\;\;
+(A \OR B)
+\]
+\[
+\term{f}:((\type{A} \to \z) \x (\type{B} \to \z)) \to \z
+\;\;\dashv \not\tstile \;\;
+\type{A} \+ \type{B}
+\]
+\end{Theorem}
+\begin{Proof}
+$\not\tstile$: This direction is not constructively valid: if we could carry out this construction then we could use it to do DNE, as follows:
+\begin{Lemma}
+\[
+\frac{
+((\type{A} \to \z) \x (\type{B} \to \z)) \to \z
+\;\;\tstile \;\;
+\type{A} \+ \type{B}
+}{
+(\type{A} \to \z) \to \z
+\;\;\tstile\;\;
+\type{A}
+}
+\]
+\end{Lemma}
+\begin{Proof}
+If the top line holds for arbitrary types \type{A} and \type{B} then in particular we have:
+\[
+((\type{A} \to \z) \x (\type{0} \to \z)) \to \z
+\;\;\tstile \;\;
+\type{A} \+ \type{0}
+\]
+It is then straightforward to show that the left side of the turnstile is equivalent to $(\type{A} \to \z) \to \z$, while the right side is equivalent to $\type{A}$.
+\end{Proof}
+
+$\dashv$:  By case analysis: if we have a term $\term{a}:\type{A}$ then we define \term{f} as
+\[
+\term{f}((\bar{\term{a}}, \bar{\term{b}})) \DefinedAs \bar{\term{a}}(\term{a})
+\]
+whereas if we have a term $\term{b}:\type{B}$ then we define \term{f} as
+\[
+\term{f}((\bar{\term{a}}, \bar{\term{b}})) \DefinedAs \bar{\term{b}}(\term{b})
+\]
+
+\end{Proof}
+
+
+\subsubsection{Summary of the Constructive de Morgan laws}
+
+We divided the classical de Morgan laws into 8 different entailments, and we have seen that only 5 of them hold constructively:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{c c c }
+$(A \AND B)$					&$\not\dashv \; \tstile$ 	&$\NOT(\NOT A \OR \NOT B)$ \\
+$(\NOT A \AND \NOT B)$ 	 	&$\dashv \; \tstile$ 	&$\NOT(A \OR B)$ \\
+$\NOT(A \AND B)$  				&$\dashv \; \not\tstile$ 	&$(\NOT A \OR \NOT B)$ \\
+$\NOT (\NOT A \AND \NOT B)$	&$\dashv \; \not\tstile$ 	&$(A \OR B)$
+\end{tabular}
+\end{table}
+
+Of the three that do not hold constructively, we gave explicit counterexamples for two of them, showing that if they were constructively valid then we would obtain constructive DNE as a special case.  However, for the other constructively invalid law, namely
+\[
+(\type{A} \x \type{B}) \to \z
+\;\; \not\tstile \;\;
+((\type{A} \to \z) \+ (\type{B} \to \z))
+\]
+we were not able to give such an argument.  We could make a plausible case that, since we cannot create arbitrary terms of arbitrary types, we cannot use a function $(\type{A} \x \type{B}) \to \z$ to construct either a function $\type{A} \to \z$ 
+nor a function $\type{B} \to \z$.  But this is not as strong an argument as showing that an entailment's validity would lead to impossible results.  Can we do better than this?
+
+If we try the obvious methods, substituting special values in for \type{A} and \type{B}, this only leads to conclusions that are constructively acceptable.  For example, if we replace \type{B} with \type{1} we get
+\[
+(\type{A} \x \type{1}) \to \z
+\;\; \tstile \;\;
+((\type{A} \to \z) \+ (\type{1} \to \z))
+\]
+which is easily seen to be equivalent to $\type{A} \to \z \tstile \type{A} \to \z$.  Similarly, if we replace \type{B} with $\type{A} \to \z$ we get
+\[
+(\type{A} \x (\type{A} \to \z)) \to \z
+\;\; \tstile \;\;
+((\type{A} \to \z) \+ ((\type{A} \to \z) \to \z))
+\]
+The left side of this always holds, so the above statement corresponds to what we might call ``the Law of Excluded Middle for Negated Propositions'' 
+${\tstile \NOT A \OR  \NOT \NOT A}$, which is constructively fine.\footnote{
+TO DO: Or is it?  Prove this one way or the other!
+}
+
+We therefore need a more powerful technique to demonstrate the constructive invalidity of an argument.  We introduce such a technique in the next section.
+
+
+
+
+%None of the 5 constructively valid rules makes explicit reference to the involvement of the Zero type, and so none relies upon Explosion.  Moreover, we could immediately generalise them to replace $\z$ with an arbitrary type \type{Z} if we wanted, which would give some obvious (but not particularly interesting) logical rules such as:
+%%
+%% First Law:
+%\[
+%(A \AND B)
+%\;\; \tstile \;\; 
+%((A \IMPLIES Z) \OR (B \IMPLIES Z)) \IMPLIES Z
+%\]
+%\[
+%(A \x B)
+%\;\; \tstile \;\; 
+%((A \to Z) \+ (B \to Z)) \to Z
+%\]
+%
+%% Second Law
+%% \[
+%% ((A \IMPLIES Z) \AND (B \IMPLIES Z))
+%% \;\;  \dashv \; \tstile \;\; 
+%% (A \OR B) \IMPLIES Z
+%% \]
+%% \[
+%% ((A \to Z) \x (B \to Z))
+%% \;\;  \dashv \; \tstile \;\; 
+%% (A \+ B) \to Z
+%% \]
+%
+%% Third Law:
+%% \[
+%% ((A \IMPLIES Z) \OR (B \IMPLIES Z))
+%% \;\; \tstile \;\; 
+%% (A \AND B) \IMPLIES Z
+%% \]
+%% \[
+%% ((A \to Z) \+ (B \to Z))
+%% \;\; \tstile \;\; 
+%% (A \x B) \to Z
+%% \]
+%
+%% Fourth Law:
+%% \[
+%% (A \OR B)
+%% \;\; \tstile  \;\; 
+%% ((A \IMPLIES Z) \AND (B \IMPLIES Z)) \IMPLIES Z
+%% \]
+%% \[
+%% (A \+ B)
+%% \;\; \tstile  \;\; 
+%% ((A \to Z) \x (B \to Z)) \to Z
+%% \]
+
+
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+

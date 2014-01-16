@@ -1,0 +1,679 @@
+\section{Predicate Logic in Type Theory}
+\label{sec:PredicateLogic}
+
+Now we've introduced the quantifiers into our language we need to investigate how they behave.  How much of classical (first order) \terminology{predicate logic} is preserved when we work in this constructive system?\footnote{
+Question: To what extent can we get quantified formulae into prenex normal form (i.e. with all quantifiers at the front?  We can't move negations inside, but what about $\AND$, $\OR$, and $\IMPLIES$?
+%http://en.wikipedia.org/wiki/Prenex_normal_form
+}
+(Note that, as in Section~\ref{}, we're (currently) working in a \emph{semantic} rather than \emph{syntactic} style, i.e. we're thinking about manipulating and constructing terms rather than simply applying purely formal introduction and elimination rules to expressions.)
+
+
+\subsection{Quantifiers and Conjunction or Disjunction}
+\label{sec:PredicateLogic-QuantifiersANDOR}
+
+Given two predicates $\term{P}$ and $\term{Q}$ on the type $\type{A}$, we can define a number of propositions involving a single quantifier and either a conjunction or a disjunction.  How do they relate to one another?  We will see that in all the following cases, the rule holds constructively exactly when it holds classically.  (For the cases where the rule does not hold, it is easy to get a counterexample: consider the case where we quantify over the natural numbers, and $\term{P}(\term{n})$ is ``$\term{n}$ is even'' while $\term{Q}(\term{n})$ is ``$\term{n}$ is odd''.)
+
+
+\subsubsection{Universal quantifier and conjunction}
+
+\[
+(\forall x \in A) (P(x) \AND Q(x))
+	\;\; \dashv \; \tstile \;\;
+((\forall y \in A) P(y)) \AND ((\forall z \in A) Q(z))
+\]
+\[
+\PROD{\term{x}:\type{A}}
+{(
+\type{P}(\term{x})
+\x
+\type{Q}(\term{x})
+)}
+	\;\; \dashv \; \tstile \;\;
+\left(
+\PROD{\term{y}:\type{A}}
+{\type{P}(\term{y})}
+\right)
+\x
+\left(
+\PROD{\term{z}:\type{A}}
+{\type{Q}(\term{z})}
+\right)
+\]
+
+A term $\term{f}:\PROD{\term{x}:\type{A}}
+{(
+\type{P}(\term{x})
+\x
+\type{Q}(\term{x})
+)}$
+is a function that takes $\term{x}:\type{A}$ as input and returns as output a term of 
+$(\type{P}(\term{x})
+\x
+\type{Q}(\term{x}))$, i.e. a pair 
+$(\term{p}^{\term{x}},
+\term{q}^{\term{x}})$.
+
+A term $(\term{g}, \term{h}):
+\left(
+\PROD{\term{y}:\type{A}}
+{\type{P}(\term{y})}
+\right)
+\x
+\left(
+\PROD{\term{z}:\type{A}}
+{\type{Q}(\term{z})}
+\right)$
+is a pair of functions, where 
+$\term{g}: \PROD{\term{y}:\type{A}}
+{\type{P}(\term{y})}$
+takes a term $\term{y}:\type{A}$ as input and returns a term 
+$\term{p}^{\term{y}}: \type{P}(\term{y})$, while 
+$\term{h}: \PROD{\term{z}:\type{A}}
+{\type{Q}(\term{z})}$
+takes a term $\term{z}:\type{A}$ as input and returns a term 
+$\term{q}^{\term{z}}:\type{Q}(\term{z})$.
+
+
+$\tstile$: Given \term{f} we use the projectors $pr_1$ and $pr_2$ from the product, and define 
+$\term{g}(\term{x}) \DefinedAs pr_1(\term{f}(\term{x}))$ and 
+$\term{h}(\term{x}) \DefinedAs pr_2(\term{f}(\term{x}))$.
+
+$\dashv$: Given $(\term{g}, \term{h})$ we define
+$\term{f}(\term{x}) \DefinedAs 
+(\term{g}(\term{x}), \term{h}(\term{x}))$.
+
+
+\newpage
+\subsubsection{Existential quantifier and conjunction}
+
+\[
+(\exists x \in A) (P(x) \AND Q(x))
+	\;\; \not\dashv \; \tstile \;\;
+((\exists y \in A) P(y)) \AND ((\exists z \in A) Q(z))
+\]
+\[
+\SUM{\term{x}:\type{A}}
+{(
+\type{P}(\term{x})
+\x
+\type{Q}(\term{x})
+)}
+	\;\; \not\dashv \; \tstile \;\;
+\left(
+\SUM{\term{y}:\type{A}}
+{\type{P}(\term{y})}
+\right)
+\x
+\left(
+\SUM{\term{z}:\type{A}}
+{\type{Q}(\term{z})}
+\right)
+\]
+
+A term of 
+$\SUM{\term{x}:\type{A}}
+{(
+\type{P}(\term{x})
+\x
+\type{Q}(\term{x})
+)}$
+is a pair 
+$(\term{x}, (\term{p}^{\term{x}}, \term{q}^{\term{x}}))$, where $\term{x}:\type{A}$, $\term{p}^{\term{x}}:\type{P}(\term{x})$, and $\term{q}^{\term{x}}:\type{Q}(\term{x})$.
+
+A term of 
+$%\left(
+\SUM{\term{y}:\type{A}}
+{\type{P}(\term{y})}
+%\right)
+\x
+%\left(
+\SUM{\term{z}:\type{A}}
+{\type{Q}(\term{z})}
+%\right)
+$
+is a pair 
+$((\term{y},\term{p}^{\term{y}}), (\term{z},\term{q}^{\term{z}}))$,
+% 
+where $\term{y}:\type{A}$, $\term{z}:\type{A}$, $\term{p}^{\term{y}}:\type{P}(\term{y})$, and $\term{q}^{\term{z}}:\type{Q}(\term{z})$.  NB: Note that we won't in general have the \emph{same} term of $\type{A}$ involved in both components of this pair, so must give them different names -- but nothing \emph{forces} the terms to be different, so we also have the case where the same term appears on both sides (i.e. where $\term{y} \equiv \term{z}$).
+
+
+$\tstile$: Given $(\term{x}, (\term{p}^{\term{x}}, \term{q}^{\term{x}}))$ we can immediately construct 
+$((\term{x},\term{p}^{\term{x}}), (\term{x},\term{q}^{\term{x}}))$, which is a term of 
+$\left(
+\SUM{\term{a}:\type{A}}
+{\type{P}(\term{a})}
+\right)
+\x
+\left(
+\SUM{\term{a}:\type{A}}
+{\type{Q}(\term{a})}
+\right)$.
+
+
+$\not\dashv$:  This is not constructively valid, as we'd expect, since in general we don't have $\term{y} \equiv \term{z}$ in the pair of terms provided.  
+
+
+
+
+
+
+
+
+\subsubsection{Universal quantifier and disjunction}
+
+\[
+(\forall x \in A) (P(x) \OR Q(x))
+	\;\; \dashv \; \not\tstile \;\;
+((\forall y \in A) P(y)) \OR ((\forall z \in A) Q(z))
+\]
+\[
+\PROD{\term{x}:\type{A}}
+{(
+\type{P}(\term{x})
+\+
+\type{Q}(\term{x})
+)}
+	\;\; \dashv \; \not\tstile \;\;
+\left(
+\PROD{\term{y}:\type{A}}
+{\type{P}(\term{y})}
+\right)
+\+
+\left(
+\PROD{\term{z}:\type{A}}
+{\type{Q}(\term{z})}
+\right)
+\]
+
+A term 
+$\term{f}:\PROD{\term{x}:\type{A}}
+{(
+\type{P}(\term{x})
+\+
+\type{Q}(\term{x})
+)}$ 
+is a function that takes $\term{x}:\type{A}$ as input and returns as output a term of 
+$\type{P}(\term{x})
+\+
+\type{Q}(\term{x})$, i.e. either a term 
+$\term{p}^{\term{x}}:\type{P}(\term{x})$
+or a term
+$\term{q}^{\term{x}}:\type{Q}(\term{x})$.
+
+
+A term of
+$%\left(
+\PROD{\term{y}:\type{A}}
+{\type{P}(\term{y})}
+%\right)
+\+
+%\left(
+\PROD{\term{z}:\type{A}}
+{\type{Q}(\term{z})}
+%\right)
+$ 
+is either a function 
+$\term{g}:
+%\left(
+\PROD{\term{y}:\type{A}}
+{\type{P}(\term{y})}
+%\right)
+$
+or a function
+$\term{h}:
+%\left(
+\PROD{\term{z}:\type{A}}
+{\type{Q}(\term{z})}
+%\right)
+$.
+
+$\not\tstile$:  This is not constructively valid, as we would expect -- in general we cannot guarantee that \term{f} will output a 
+$\term{p}^{\term{x}}:\type{P}(\term{x})$ for every $\term{x}:\type{A}$, nor that it will output a 
+$\term{q}^{\term{x}}:\type{Q}(\term{x})$ for every $\term{x}:\type{A}$, and so we cannot construct either of \term{g} or \term{h}.
+
+
+
+$\dashv$:  Trivially, by case analysis on the coproduct: 
+if we have \term{g} then we define $\term{f}(\term{a}) \DefinedAs 
+\term{g}(\term{a})$, whereas 
+if we have \term{h} then we define $\term{f}(\term{a}) \DefinedAs 
+\term{h}(\term{a})$.
+
+
+
+\newpage
+\subsubsection{Existential quantifier and disjunction}
+
+\[
+(\exists x \in A) (P(x) \OR Q(x))
+	\;\; \dashv \; \tstile \;\;
+((\exists y \in A) P(y)) \OR ((\exists z \in A) Q(z))
+\]
+\[
+\SUM{\term{x}:\type{A}}
+{(
+\type{P}(\term{x})
+\+
+\type{Q}(\term{x})
+)}
+	\;\; \dashv \; \tstile \;\;
+\left(
+\SUM{\term{y}:\type{A}}
+{\type{P}(\term{y})}
+\right)
+\+
+\left(
+\SUM{\term{z}:\type{A}}
+{\type{Q}(\term{z})}
+\right)
+\]
+
+A term of 
+$\SUM{\term{x}:\type{A}}
+{(
+\type{P}(\term{x})
+\+
+\type{Q}(\term{x})
+)}$
+is a pair $(\term{x}, \term{g}^{\term{x}})$, where $\term{g}^{\term{x}}$ is either $inl(\term{p}^{\term{x}})$ for some
+$\term{p}^{\term{x}}:\type{P}(\term{x})$ or
+$inr(\term{q}^{\term{x}})$ for some
+$\term{q}^{\term{x}}:\type{Q}(\term{x})$.
+
+
+A term of 
+$%\left(
+\SUM{\term{y}:\type{A}}
+{\type{P}(\term{y})}
+%\right)
+\+
+%\left(
+\SUM{\term{z}:\type{A}}
+{\type{Q}(\term{z})}
+%\right)
+$
+is either a pair 
+$(\term{y},\term{p}^{\term{y}})$ with $\term{y}:\type{A}$, and $\term{p}^{\term{y}}:\type{P}(\term{y})$,
+or a pair 
+$(\term{z},\term{q}^{\term{z}})$ with $\term{z}:\type{A}$, and $\term{q}^{\term{z}}:\type{Q}(\term{z})$.
+
+Both directions of this proof are trivial, requiring only that we unwrap coproduct terms through case analysis and then re-wrap things with the relevant coproduct injectors.  No further construction is required.
+
+
+
+
+%\subsubsection{Summary and Generalisation}
+
+%From the above facts and a couple of other results, it follows that the whole ``cube'' of classical entailments between statements of this kind also hold constructively.
+
+
+\subsection{Quantifiers and Negation}
+\label{sec:PredicateLogic-QuantifiersNegation}
+
+Classically we can ``pull negations past quantifiers'', for example transforming $\NOT \forall$ into $\exists \NOT$ and vice versa.  Can we do that in our constructive logic?  There are four classical relationships to test.  Written in set-theoretic notation, they look like this:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{r c r }
+$(\forall a \in A) P(x)$					&$\dashv \; \tstile$ 	
+&$\NOT (\exists a \in A) \NOT P(x)$
+ \\
+$(\forall a \in A) \NOT P(x)$					&$\dashv \; \tstile$ 	
+&$\NOT (\exists a \in A) P(x)$
+ \\
+$\NOT(\forall a \in A) P(x)$					&$\dashv \; \tstile$ 	
+&$(\exists a \in A) \NOT P(x)$
+ \\
+$\NOT(\forall a \in A) \NOT P(x)$					&$\dashv \; \tstile$ 	
+&$(\exists a \in A) P(x)$
+\end{tabular}
+\end{table}
+(where $P$ is some arbitrary predicate on the set $A$).
+
+Schematically, we could write these as:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{r c l}
+$\forall$					&$\dashv \; \tstile$ 	
+&$\NOT \exists\NOT $
+ \\
+$\forall\NOT $					&$\dashv \; \tstile$ 	
+&$\NOT \exists$
+ \\
+$\NOT\forall$					&$\dashv \; \tstile$ 	
+&$\exists\NOT $
+ \\
+$\NOT\forall\NOT $					&$\dashv \; \tstile$ 	
+&$\exists$
+\end{tabular}
+\end{table}
+
+As with the case of de Morgan's laws (Section~\ref{}), we'll find that some of these hold constructively and some don't.  We'll deal with the two middle rows of the table first, and use these results in proving results for the other two rows.
+
+
+
+
+\subsubsection{$\forall\NOT$ and $\NOT \exists$}
+
+\[
+(\forall a \in A) \NOT P(a)
+\;\; \dashv \; \tstile 	\;\; 
+\NOT (\exists a \in A) P(a)
+\]
+\[
+\term{f}:\PROD
+{\term{a}:\type{A}}
+{(\type{P(a)} \to \z)}
+\;\; \dashv \; \tstile 	\;\; 
+\term{g}:\left(
+\SUM{\term{a}:\type{A}}{\type{P(a)}}
+\right) \to \z
+\]
+
+$\tstile$:  We are given a term 
+$\term{f}:\PROD
+{\term{a}:\type{A}}
+{(\type{P(a)} \to \z)}$, 
+and we want to use this to construct a function 
+$\term{g}: \left(
+\SUM{\term{a}:\type{A}}{\type{P(a)}}
+\right) \to \z$.  
+The function $\term{g}$ must take any witness of 
+$\SUM{\term{a}:\type{A}}{\type{P(a)}}$
+and return a term of $\z$.  
+
+A term of 
+$\SUM{\term{a}:\type{A}}{\type{P(a)}}$, 
+recall, is a pair $(\term{x}, \term{p}^{\term{x}})$ consisting of a term $\term{x}:\type{A}$ 
+and a term $\term{p}^{\term{x}}:\type{P(x)}$.  So we can think of  $\term{g}$ as taking any purported witness and discrediting it (by showing that a term of $\z$ can be obtained from it).
+
+To do this, we just have to apply $\term{f}$ to the given $\term{x}:\type{A}$, which will produce a corresponding 
+$\bar{\term{p}}^{\term{x}}: \type{P(x)} \to \z$.  We can then apply this 
+$\bar{\term{p}}^{\term{x}}$ to the provided $\term{p}^{\term{x}}$ to get the term of $\z$ we need.  So we can define $\term{g}$ as 
+$\term{g}((\term{x}, \term{p}^{\term{x}})) \DefinedAs 
+\term{f}(\term{x})(\term{p}^{\term{x}})$
+
+
+
+$\dashv$: Given a function \term{g} that discredits purported witnesses $(\term{x},\term{p}^{\term{x}})$, can we build a function $\term{f}$ that returns a particular $\term{f}_{\term{x}}: \type{P(x)} \to \z$ for each $\term{x}:\type{A}$?  What must $\term{f}_{\term{x}}$ do when given a term $\term{p}^{\term{x}}:\type{P(x)}$, in order to produce a term of $\z$?  It can just feed that $\term{p}^{\term{x}}$, along with its own particular $\term{x}$, into $\term{g}$.  Thus we can define
+$\term{f}(\term{x})(\term{p}^{\term{x}})
+ \DefinedAs 
+\term{g}((\term{x}, \term{p}^{\term{x}}))$.
+
+
+
+
+\subsubsection{$\NOT\forall$ and $\exists \NOT$}
+
+\[
+\NOT(\forall a \in A) P(x)
+\;\; \dashv \; \tstile 	\;\; 
+(\exists a \in A) \NOT P(x)
+\]
+\[
+\bar{\term{f}}:
+\left(
+\PROD
+{\term{a}:\type{A}}
+{\type{P(a)}}
+\right) \to \z
+\;\; \dashv \; \tstile 	\;\; 
+(\term{x}, \bar{\term{p}}^{\term{x}}):
+\SUM{\term{a}:\type{A}}
+{(\type{P(a)} \to \z)}
+\]
+
+$\not\tstile$:  This is not constructively valid.  In order to produce the ``counterexample'' $(\term{x}, \bar{\term{p}}^{\term{x}})$ we need to produce a term $\term{x}:\type{A}$, but for arbitrary types we cannot in general produce a term.  Having the function $\bar{\term{f}}$ doesn't help.
+
+In fact, if we consider the special case where, for all $\term{a}:\type{A}$, we define the type $\type{P(a)}$ to simply be the type $\z$ then we see that if we could carry out this construction we could obtain a term of \type{A} from a term of $(\type{A} \to \z) \to \z$ -- i.e. we could do DNE.
+
+$\dashv$:  We are given a term
+$(\term{x}, \bar{\term{p}}^{\term{x}}):
+\SUM{\term{a}:\type{A}}
+{(\type{P(a)} \to \z)}$, 
+where $\term{x}:\type{A}$ and 
+$\bar{\term{p}}^{\term{x}}:\type{P(x)} \to \z$, 
+and we want to use it to construct a function 
+$\bar{\term{f}}:
+\left(
+\PROD
+{\term{a}:\type{A}}
+{\type{P(a)}}
+\right) \to \z$.  This function $\bar{\term{f}}$ 
+must take functions 
+$\term{f}:\PROD
+{\term{a}:\type{A}}
+{\type{P(a)}}$ 
+and discredit them by showing that they can be used to obtain to a term of $\z$.
+
+To do this, all we need is to apply \term{f} to our ``counterexample'' \term{x} to get 
+$\term{f}(\term{x}):\type{P(x)}$.  Then the provided 
+$\bar{\term{p}}^{\term{x}}$ can be applied to this to give the required term of $\z$.  Thus we can define 
+$\bar{\term{f}}$ as
+$\bar{\term{f}}(\term{f}) \DefinedAs 
+\bar{\term{p}}^{\term{x}}(\term{f}(\term{x}))$
+
+
+
+
+
+
+
+
+\subsubsection{$\forall$ and $\NOT \exists \NOT$}
+
+\[
+(\forall a \in A) P(x)
+\;\; \dashv \; \tstile 	\;\; 
+\NOT (\exists a \in A) \NOT P(x)
+\]
+\[
+\term{f}:\PROD{\term{a}:\type{A}}{\type{P(a)}}
+\;\; \dashv \; \tstile 	\;\; 
+\term{g}:
+\left(
+\SUM{\term{a}:\type{A}}{(\type{P(a)} \to \z)}
+\right) \to \z
+\]
+
+$\tstile$:  From 
+$\term{f}:\PROD{\term{a}:\type{A}}{\type{P(a)}}$
+we can construct
+$\term{f}^{\prime}:\PROD{\term{a}:\type{A}}
+{((\type{P(a)} \to \z) \to \z)}$
+by DNI. Specifically, $\term{f}^{\prime}(\term{x})$ applies \term{f} to \term{x} to get a term of $\type{P(x)}$, and then applies the construction described in Section~\ref{} to produce a term of 
+${(\type{P(x)} \to \z) \to \z}$.
+
+$\PROD{\term{a}:\type{A}}
+{((\type{P(a)} \to \z) \to \z)}$ corresponds to the proposition
+$(\forall a \in A) \NOT \NOT P(x)$.  Using the construction of Section~\ref{} above we can therefore ``pull'' one of the negation signs past the quantifier.  That is, we can use this $\term{f}^{\prime}$ to construct a term of 
+$\left(
+\SUM{\term{a}:\type{A}}{(\type{P(a)} \to \z)}
+\right) \to \z$
+corresponding to the proposition
+$\NOT(\exists a \in A) \NOT P(x)$, as required.
+
+
+
+
+$\not\dashv$:  This is not constructively valid.
+\term{g} takes any pair $(\term{x},\bar{\term{p}}^{\term{x}})$ and returns a term of $\z$.  But to construct \term{f} we need a way to map any given \term{a} to a corresponding term $\term{p}^{\term{a}}:\type{P(a)}$, and \term{g} is no help in doing this.
+
+In particular, if we consider the special case where for every $\term{a}:\type{A}$ we choose $\type{P(a)}$ to be \type{B} (i.e. consider a non-dependent function $\type{A} \to \type{B}$) then we can show that this construction would allow us to carry out DNE.\footnote{
+Specifically, if we ``quantify'' over the Unit type \type{1} that has exactly one term.  The details are left as an exercise.}
+
+%Of course, we can use the result proved above to ``pull'' the first negation past the $\exists$ quantifier, thereby demonstrating 
+%\[
+%\NOT (\exists a \in A) \NOT P(x)
+%\;\; \tstile 	\;\; 
+%(\forall a \in A) \NOT \NOT P(x)
+%\]
+%but since we can't do DNE this does not give us 
+%$(\forall a \in A) P(x)$.
+
+
+
+
+\subsubsection{$\NOT\forall\NOT$ and $\exists$}
+
+\[
+\NOT(\forall a \in A) \NOT P(a)
+\;\; \dashv \; \tstile 	\;\; 
+(\exists a \in A) P(a)
+\]
+\[
+\bar{\term{f}}:
+\left(
+\PROD{\term{a}:\type{A}}
+{(\type{P(a)} \to \z)}
+\right) \to \z
+	\;\; \dashv \; \tstile 	\;\; 
+(\term{x}, \term{p}^{\term{x}}):
+\SUM{\term{a}:\type{A}}
+{\type{P(a)}}
+\]
+
+
+$\not\tstile$: This is not constructively valid.  We need to construct a particular term $\term{x}:\type{A}$, but $\bar{\term{f}}$ doesn't provide anything to help us do this.
+
+Moreover, if we could carry out this construction then we could use it to do DNE (by taking ${\type{P(a)}}$ to be a constant \type{B} for all $\term{a}:\type{A}$, and `quantifying' over the Unit type). 
+
+$\dashv$:  $\bar{\term{f}}$ takes any function 
+$\term{f}:\PROD{\term{a}:\type{A}}
+{(\type{P(a)} \to \z)}$
+and applies it to \term{x} to get some 
+$\bar{\term{p}}^{\term{x}}:{\type{P(x)} \to \z}$.  This function can then be applied to $\term{p}^{\term{x}}:\type{P(x)}$ to get the required term of $\z$.  Thus we can define $\bar{\term{f}}$ as
+$\bar{\term{f}}(\term{f}) \DefinedAs
+\term{f}(\term{x})(\term{p}^{\term{x}})$.
+
+
+
+
+\subsubsection{Summary}
+
+So, just as in the case of the de Morgan laws, 5 of the 8 classical entailments are constructively valid, and 3 are not.  We can summarise the results in the following schematic table:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{r c l}
+$\forall$					&$\not\dashv \; \tstile$ 	
+&$\NOT \exists\NOT $
+ \\
+$\forall\NOT $					&$\dashv \; \tstile$ 	
+&$\NOT \exists$
+ \\
+$\NOT\forall$					&$\dashv \; \not\tstile$ 	
+&$\exists\NOT $
+ \\
+$\NOT\forall\NOT $					&$\dashv \; \not\tstile$ 	
+&$\exists$
+\end{tabular}
+\end{table}
+
+Moreover, if we compare these results with the corresponding table we got for de~Morgan's laws, we can see that they are in exact parallel:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{r c l || c c c}
+$(A \AND B)$					
+&$\not\dashv \; \tstile$ 	
+&$\NOT(\NOT A \OR \NOT B)$
+%
+&$\forall$					
+&$\not\dashv \; \tstile$ 	
+&$\NOT \exists\NOT $
+ \\  %%%%%%%%%%%%%%%%
+$(\NOT A \AND \NOT B)$ 	 	
+&$\dashv \; \tstile$ 	
+&$\NOT(A \OR B)$ 
+%
+&$\forall\NOT $					
+&$\dashv \; \tstile$ 	
+&$\NOT \exists$
+ \\  %%%%%%%%%%%%%%%%
+$\NOT(A \AND B)$  				
+&$\dashv \; \not\tstile$ 	
+&$(\NOT A \OR \NOT B)$
+%
+& $\NOT\forall$					
+&$\dashv \; \not\tstile$ 	
+&$\exists\NOT $
+ \\  %%%%%%%%%%%%%%%%
+$\NOT (\NOT A \AND \NOT B)$	
+&$\dashv \; \not\tstile$ 	
+&$(A \OR B)$
+%
+& $\NOT\forall\NOT $					
+&$\dashv \; \not\tstile$ 	
+&$\exists$
+\end{tabular}
+\end{table}
+
+This brings up a different connection between dependent and non-dependent types.  In Section~\ref{} we saw that dependent function types include as a special case the non-dependent function types, and dependent pair types include as a special case the product types.  The above correspondence, on the other hand, suggests that we might think of 
+universal quantification as a generalised kind of conjunction, and 
+existential quantification as a generalised kind of disjunction (which is already a familiar idea from classical logic).  
+
+In fact, we can go further than this.  If we hadn't defined product and coproduct types, we could have defined them as special kinds of $\prod$- and $\sum$-types respectively, where the type quantified over has exactly two terms (see Section~\ref{} for the definition of this type).\footnote{However, some of the details of what we end up with by doing things this way end up being a bit different.  For more about this, see the HoTT Book, pp. 35--36.
+}
+%Drawing these facts together in a table:
+%
+%\begin{table}[h]
+%\centering
+%\begin{tabular}{c c c c}
+%Non-dependent	&	Dependent	&	Quantifier	&	\ldots which generalises 
+%\\
+%\hline
+%$\to$			&	$\prod$		&	$\forall$	&	$\AND$ \; $\x$
+%\\
+%$\x$			&	$\sum$		&	$\exists$	&	$\OR$ \; $\+$
+%\end{tabular}
+%\end{table}
+%%
+%We might therefore be inclined to wonder whether all these type formers -- products, coproducts, functions, and the dependent types -- can all be unified into a single scheme somehow.  We will return to this topic later.
+
+
+
+%(where $\term{P}:\type{A} \to \TYPE$ is some arbitrary predicate on type \type{A}).
+
+
+
+%\subsection{Multi-argument predicates}
+%
+%Some of the expressions below will involve predicates of multiple arguments, like $P(x,y)$.  A predicate on \type{A} is a function $\type{A} \to \TYPE$, so what is a multi-argument predicate?  We could read it as a predicate on the product type, 
+%$(\type{A} \x \type{B}) \to \TYPE$.  
+%Alternatively, we could read it as a curried function of type
+%$\type{A} \to (\type{B} \to \TYPE)$, i.e. as a function from \type{A} that returns a predicate on \type{B} as its output.  Just as with non-dependent functions, the two viewpoints are interchangeable and essentially equivalent.
+%Let's prove this now.
+%\[
+%\PROD{x:A}{\PROD{y:B}{P(x,y)}}
+%\; \dashv \; \tstile
+%\PROD{(x,y):A \x B}{P((x,y))}
+%\]
+%A term $\term{f}:\PROD{x:A}{\PROD{y:B}{P(x,y)}}$ is a function that takes $x:A$ as input and returns a term $g_x:\PROD{y:B}{P(x,y)}$ as output, where the latter is a function that takes $y:B$ as input and returns a term $p_{x,y}:P(x,y)$ as output.  
+
+
+
+%\subsection{Interchange of repeated quantifiers}
+%
+%Classically, if we have an adjacent pair of universal quantifiers or
+%an adjacent pair of existential quantifiers, we can exchange their order without changing the truth of the proposition.  Can we still do that in our constructive logic?
+%\[
+%\forall x \in A, \, \forall y \in B, \, P(x,y) 
+%\dashv \; \tstile
+%\forall y \in B, \, \forall x \in A, \, P(x,y)
+%\]
+%\[
+%\PROD{x:A}{\PROD{y:B}{P(x,y)}}
+%\dashv \; \tstile
+%\PROD{y:B}{\PROD{x:A}{P(x,y)}}
+%\]
+%
+%\[
+%\exists x \in A, \, \exists y \in B, \, P(x,y) 
+%\Leftrightarrow 
+%\exists y \in B, \, \exists x \in A, \, P(x,y)
+%\]
+
+
+

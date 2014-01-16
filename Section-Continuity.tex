@@ -1,0 +1,105 @@
+\section{Continuity}
+
+In this section we introduce a central idea of Homotopy Type Theory that, until now, we have been able to get away with ignoring.  This is the idea of \terminology{continuity}.  Continuity is the starting point whereby homotopy enters Homotopy Type Theory!  It will be an important part of motivating the definition of \emph{identity types} in Section \ref{}, and is central to the correct interpretation of the quantifiers introduced in Section \ref{} (as we'll see later).  We therefore need to take care to introduce, understand, and motivate these ideas properly.
+
+Initially it might seem most odd that an idea like continuity should play any role at all in a putative foundation for mathematics.
+Continuity enters into mathematics via \emph{topology}, whose definitions are initially motivated by considerations of \emph{continua} in the form of rich mathematical entities like the Euclidean plane and Riemannian manifolds.
+But the definition of these structures requires mathematical technology like fields, and in particular the field of real numbers $\RR$, which clearly do not belong in the foundations.
+
+We subsequently abstract away from these examples to give a definition of topological space that depends on nothing more sophisticated than the language of set theory -- subsets, unions, intersections, etc.  While this captures the formalisation of the idea, it leaves behind the intuition that motivates the subject.  Put another way: if we were asked to describe our pre-mathematical ideas of what ``continuous'' means we would not immediately reach for a \emph{discrete} collection of objects!
+So while we could define point set topology using just the primitives of a foundational theory, without the richer examples to motivate these ideas we have no coherent justification for doing so.
+
+How, then, can a concept that (usually) naturally occurs rather late in the development of mathematical ideas be a central idea of a supposedly \emph{foundational} theory?
+To answer this we need to find a conceptually simpler approach -- a chain of ideas that leads to continuity without going through rich structures based on continua.  We will develop this alternative approach in the present section.
+First we'll define continuity as it appears in classical mathematics: as a property of maps between topological spaces, with the particular example of continuous functions $\RR \to \RR$ being the easiest to understand.  We will then see how a version of the same ideas arises in the context of \emph{computation}.  (We might also see how the latter idea is formalised in the definition of \emph{Scott continuity}.)
+
+
+
+\newpage
+\subsection{Topology}
+
+A \terminology{topological space} is a pair consisting of a set $X$ and a collection $T$ of subsets of $X$ (i.e. $T \subseteq 2^T$), which we call the \emph{open} subsets of $X$, satisfying the following:
+\begin{enumerate}[(i)]
+\item $\varnothing$ and $X$ are both open;
+\item the union of any collection of open subsets of $X$ is open;
+\item the intersection of any finite collection of open subsets of $X$ is open.
+\end{enumerate}
+
+For example the ``open intervals'' $(a,b)$ on the real line $\RR$, defined as
+\[
+(a,b) \DefinedAs \setSuchThat{r \in \RR}{a < r \;\AND\; r < b}
+\]
+are open subsets of $\RR$, and any open subset of $\RR$ is the union of open intervals.  Thus, for example, for any $r \in \RR$ and any positive $e \in \RR$, the interval 
+\[
+(r-e, r+e) \DefinedAs \setSuchThat{r' \in \RR}{|r' - r| < e}
+\] 
+is an open interval of $\RR$.  We write $B_e(r)$ for this interval.
+
+A \terminology{continuous function} is a function between topological spaces
+\[
+f: (X,T) \to (X', T')
+\] 
+such that for every open set $V \in T'$, the inverse image under $f$ is open in $(X,T)$:
+\[
+V \in T' 
+\;\IMPLIES\;
+f^{-1}(V) \DefinedAs \setSuchThat{x \in X}{f(x) \in V} \in T
+\]
+
+
+In the special case of functions $\RR \to \RR$, where $\RR$ is equipped with the open interval topology described above, we can state the definition a little differently.  We say that $f$ is continuous at $x_0 \in \RR$ iff 
+\[
+\forall \epsilon >0,\,
+\exists \delta > 0\,
+\mbox{ such that }
+\forall x \in \RR,\,
+[
+|x - x_0| < \delta
+\IMPLIES
+|f(x) - f(x_0)| < \epsilon
+]
+\]
+or, phrasing it in terms of the open intervals:
+\[
+\forall \epsilon >0,\,
+\exists \delta > 0\,
+\mbox{ such that }
+\forall x \in B_{\delta}(x_0),\, 
+f(x) \in B_{\epsilon}(f(x_0))
+\]
+This captures the idea that small changes in $x$ (i.e. changes smaller than $\delta$) only lead to small changes in $f(x)$ (i.e. changes smaller than $\epsilon$).
+If we want to ensure that we hit an output value less than some $\epsilon$ from $f(x_0)$ then we can always do so by using an input value within $\delta$ of $x_0$, and for every finite $\epsilon$ there is a finite $\delta$ that guarantees this.
+
+
+\newpage
+\subsection{Streams}
+
+In Section \ref{} we saw the recursive scheme that lets us define functions $\List{\type{A}}$ to some other type (where the terms of $\List{\type{A}}$, recall, are finite sequences of terms of \type{A}). In particular, this allowed us to define the natural numbers $\NN$ as $\List{\type{1}}$, where every term of $\NN$ is a finite sequence of $\ast$s which is therefore a natural number.
+
+Since there are an infinite number of terms of $\NN$, any function  $\term{f}:\NN \to \type{A}$ corresponds to an \emph{infinite} collection of terms of \type{A}, namely $\term{f}(\zN)$, $\term{f}(1)$, $\term{f}(2)$, \ldots  What can we do with such a thing?
+
+In practice, of course, we can only ever access a finite number of these terms, since we can only ever do a finite amount of computation.  Thus in practice $\term{f}$ is not really an infinite collection of values, but rather a finite but unbounded -- or what is sometimes called a \emph{potentially infinite} -- collection of terms of \type{A}.  Such potentially infinite collections are called \terminology{streams}.
+
+Note also that, since any function $\term{f}:\NN \to \type{A}$ must be defined recursively (see Section \ref{}), in the course of producing a particular $\term{f}(\term{n})$ we must evaluate \term{f} at every number smaller than \term{n}.  Thus whenever we obtain a value of the stream we must produce an initial segment of it.  
+We could therefore think of the stream instead as a function $\term{g}: \NN \to \List{\type{A}}$ that returns the first \term{n} elements of the stream $\term{f}$ when given input \term{n}.
+
+Now consider a function from streams to streams: 
+\[
+\term{h}: (\NN \to \type{A}) \to (\NN \to \type{B})
+\]
+Given a stream $\term{f}:\NN \to \type{A}$, the output is a stream $\term{h}(\term{f}): \NN \to \type{B}$.  When we give an input \term{n} to $\term{h}(\term{f})$ it must produce some term of \type{B}, which will of course in general depend upon \term{n} and the original stream \term{f}.
+Since we require that all functions terminate on all inputs (i.e. that all functions are \emph{total}), the computation of $\term{h}(\term{f})(\term{n})$ cannot depend upon the \emph{entire} infinite sequence of values that could in principle be produced by \term{f}.  Rather, it can can only depend upon a \emph{finite} initial segment of $\term{f}$.  This must hold for any \term{n} that we give to $\term{h}(\term{f})$.  We don't require that \emph{the same} initial segment of \term{f} be sufficient to work out all values of $\term{h}(\term{f})$ for all inputs \term{n}.  But for every \term{n} there must be \emph{some} initial segment of \term{f} that is sufficient to calculate $\term{h}(\term{f})(\term{n})$.  That is:
+\[
+\forall \term{n}:\NN,\,
+\exists \term{m}:\NN, \,
+\mbox{ such that } 
+[\term{f}(\zN), \term{f}(1), \ldots, \term{f}(\term{m})]
+\mbox{ is sufficient to calculate }
+\term{h}(\term{f})(\term{n})
+\]
+This requirement on \term{h} is very similar in form to the definition of continuity for functions $\RR \to \RR$ given above!  With some more work we can demonstrate that this is indeed a form of continuity requirement on \term{h}.  Thus we can start to see hints of how continuity might enter our foundational story.
+
+
+\subsection{Topology for Streams}
+
+Consider the type of streams, i.e. functions from $\NN$ to any type.  Temporarily, let's think of this type as just a set of terms.  Can we put a topology on this set such that the above requirement on the function $\term{h}$ is just continuity with respect to this topology?

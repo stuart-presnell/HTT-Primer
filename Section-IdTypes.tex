@@ -1,0 +1,627 @@
+\section{Identity Types}
+
+In Section \ref{} we introduced the natural numbers and defined some common functions from arithmetic, such as addition, multiplication, and exponential, and some more complex ones such as factorial and the triangular numbers.  In some cases we gave multiple alternate definitions of functions: for example, we defined \term{double} recursively, but also said that we could have defined it as $\term{mult}(2)$.  However, we weren't able to prove that these alternative definitions gave the same function, i.e. that for all \term{n}
+\[
+\term{double}(\term{n}) = \term{mult}(2)(\term{n})
+\]
+or to prove simple arithmetical statements like
+\[
+\term{sum-to}(\term{n}) = \term{half}(\term{mult}(\term{n})(\term{n}-1))
+\]
+Not only were we unable to prove these things: we weren't able even to \emph{state} them.  We had no way to express the proposition 
+that two numbers are equal,
+or more generally that two terms of a type are the same (in some suitable sense).\footnote{
+As we noted in Section~\ref{}, while we do have the \term{eq?} function on natural numbers, this doesn't serve the purposes we need, since it's just a function evaluation that results in a number that \emph{we interpret} to mean ``true'' or ``false''.  What we need is a \emph{proposition}, i.e. a type, and so we need to add something new to our language to introduce this.
+}
+
+In this section we'll add this new feature to our language and see how it behaves in abstract generality.  In the next section we'll see how we can use it to prove some basic things about natural numbers, and do a little number theory.  In Section~\ref{} we'll consider the general case again, and get into some more intricate questions.
+
+For the remainder of this section we'll use phrases like ``equal'', ''identical'' and ``the same'' interchangeably, without further analysing them.  Later on we might need to revisit these terms and do some philosophical work to figure out what we ought to mean by them and whether we ought to be more careful about their use.
+
+\newpage
+\subsection{Type former for the identity type}
+
+The assertion that two things are equal, or identical, is a proposition.  It must therefore correspond to some type in our theory.  However, there is no type that we can currently define that plays this role.  We must therefore introduce a new type former into the language to create these \terminology{identity types}.  In this section we'll spell out the term constructors and elimination rules for identity types.  
+
+First, we can only say that two terms are equal when they're terms of the same type -- if two terms aren't even of the same type then they certainly can't be identical.  So an identity type must depend somehow upon the type to which the two terms belong.
+
+For any two terms $\term{a}:\type{A}$ and $\term{b}:\type{A}$ we can state the proposition that \term{a} and \term{b} are equal (which may be true or false).  Thus there isn't just a \emph{single} identity type for each type \type{A}, but there must be an identity type for each \emph{pair} of terms of \type{A}.
+
+With this in mind, we write the type corresponding to the proposition that $\term{a}:\type{A}$ and $\term{b}:\type{A}$ are equal as:\footnote{
+This type is sometimes written as 
+$\mathrm{Id}_{\type{A}}(\term{a},\term{b})$, 
+but we generally won't use this notation here.
+}
+\[
+\IdType{\term{a}}{\term{b}}{\type{A}}
+\]
+or sometimes we'll omit the type label (since we can infer this if we know the type of \term{a} and \term{b}) and write it as
+\[
+\Identity{\term{a}}{\term{b}}
+\]
+As with product types in Section~\ref{}, we'll consider 
+$\Identity{\term{a}}{\term{b}}$
+and
+$\Identity{\term{b}}{\term{a}}$
+to be different types -- i.e. the order of \term{a} and \term{b} matters -- and we'll later prove an appropriate commutativity result (Section \ref{}).
+
+
+
+A term of 
+$\Identity{\term{a}}{\term{b}}$ 
+is a witness to the proposition that the terms \term{a} and \term{b} are equal.  We call such a term an \terminology{identification} of \term{a} and \term{b}.  
+So, for example, we can form the type 
+$\IdType{5}{5}{\type{\NN}}$, which is \emph{inhabited} since the corresponding proposition is true; but we can also form the type
+$\IdType{5}{7}{\type{\NN}}$, which is \emph{uninhabited} because the corresponding proposition is false (i.e. we cannot construct a witness to the identity of the natural numbers $5$ and $7$).
+
+Note: sometimes we'll omit to give names to terms of identity types when they're not required.  Similarly, sometimes we'll write things like ``if 
+$\Identity{\term{a}}{\term{b}}$ 
+then ...'', when what we strictly ought to say is 
+``if 
+$\Identity{\term{a}}{\term{b}}$ is inhabited
+then ...''
+or
+``if we have a term of
+$\Identity{\term{a}}{\term{b}}$ 
+then ...''.  That is, we'll use ``$\Identity{\term{a}}{\term{b}}$'' as a proposition (when strictly it's the type corresponding to that proposition).
+We trust that this mild abuse of notation will not cause confusion.
+
+
+\subsection{Multiple identifications}
+
+One of our guiding principles in incorporating logic into our type theory is that propositions are not merely true or false: inhabited types can have \emph{multiple} witnesses.  This principle holds for identity types as well: we do not restrict identity types to being merely inhabited or uninhabited -- in general there may be multiple terms of 
+$\Identity{\term{a}}{\term{b}}$, 
+or just one, or none at all.  That is, for a given pair of terms \term{a} and \term{b} there may be multiple different ways they can be considered equal (or, put another way, multiple different proofs of their equality).  
+
+This is an unfamiliar idea, since we're used to identification being a simple binary proposition: two things are either distinct, in which case there's no identification between them, or they're equal, in which case there's just the singular fact of their equality.  The idea of having multiple different witnesses of the equality of a given pair of things is therefore difficult to accomodate into our reasoning.\footnote{
+TODO: Write about why this is essential and natural from the point of view of an intensional system.
+}
+
+One way to understand this is to take $\IdType{\term{x}}{\term{y}}{\type{A}}$ to be the type corresponding to the proposition that the expressions ``\term{x}'' and ``\term{y}'' \emph{name the same term} of \type{A}.  But it's not clear whether we can make such an interpretation work.  Previously we have dealt only with propositions that talk directly about mathematical objects, such as natural numbers;  they have \emph{used} expressions to refer to these objects.  Now we're considering propositions that deal with expressions themselves -- they \emph{mention} expressions.  We would therefore need some kind of mechanism of quotation and disquotation to incorporate expressions into our language, an it's not clear how to do this.\footnote{
+Moreover, it's clear that this isn't what's done in the HoTT Book, so we'd be deviating from their approach.  While we've added some new \emph{interpretation} to the material in the HoTT Book already, we haven't departed from their account on the \emph{content} of the theory, and we shouldn't do so unless their account turns out to be philosophically untenable.
+}
+
+
+
+%An analogy will perhaps be helpful.  Consider a city in which some of the streets have been blocked (by a disaster, or for a special event, for example).  From any given location there are some places in the city that can be reached, and others that cannot.  Now consider a particular pair of locations $A$ and $B$ in the city.  If all we know about them is that $B$ is accessible from $A$ then we can derive certain other facts from this -- that $A$ can be used to store supplies that are needed at $B$, for example.  But perhaps there are multiple different routes we could take from $A$ to $B$.  In that case, we can learn more useful information by being able to discriminate between routes: for example, we could work out how long it will take to get from $A$ to $B$ along each route, or whether we have enough fuel to make the journey along a particular route.  By introducing a finer-grained structure -- in this case, replacing the binary relation ``accessible'' with the \emph{set} of routes between each pair of locations\footnote{
+%The kind of move that John Baez and others have called ``categorification''.
+%} 
+%-- we gain the ability to discuss and investigate a richer and more useful domain of questions.
+%
+%The same is true in many different areas of study.\footnote{
+%TODO: Write up some brief examples.}
+%
+%However, we might still object: even if it's better to consider the richer structure of connections and processes rather than the singular fact that there exists such a connection, don't we already have other adequate mathematical structures we can describe them with?  Why should we modify our existing notion of identity to allow for multiple identifications, rather than preserving it as a simple binary fact and considering separately the various ways in which non-identical things can be related?\footnote{
+%TODO: Write up a good response to this!
+%}
+
+
+\newpage
+\subsection{Term constructor for the identity type}
+
+What is the term constructor for the identity type -- what identifications should be included as part of the definition of identity?
+
+It's clear that we shouldn't just be able to freely create terms of 
+$\Identity{\term{a}}{\term{b}}$ for arbitrary $\term{a}$ and $\term{b}$,
+since this corresponds to proving that any two terms of a type are equal
+(for example, that two arbitrary natural numbers are equal).  We clearly don't want that!
+
+The only identifications that we must guarantee to exist (with no further assumptions or premises) are the \emph{self-identities}.  That is, for any type \type{A} we must have a witness to the proposition that all terms of \type{A} are self identical.  We express this proposition as
+\[
+\PROD{\term{a}:\type{A}}{
+\IdType{\term{a}}{\term{a}}{\type{A}}}
+\]
+The term constructor for the identity type must therefore be a dependent function which takes a term $\term{x}:\type{A}$ as input and returns a term of $\IdType{\term{x}}{\term{x}}{\type{A}}$ as output.  We call this dependent function \term{refl}, short for \terminology{reflexivity}.\footnote{
+Just as with the term constructors for coproducts, strictly speaking we should have a subscript on \term{refl} to indicate its input type.  However, in practice this should never be ambiguous, so for simplicity of notation we will omit it.
+}
+This is how we construct terms of identity types when we have no other inputs to work with.  It allows us to construct one witness to $\IdType{\term{x}}{\term{x}}{\type{A}}$ for any $\term{x}:\type{A}$, and no other terms of other identity types.  This is what we should expect -- given no further information, we cannot demonstrate that two arbitrary terms of a type are identical.
+
+But that doesn't mean that we should assume that these are the only terms of identity types that exist!  How, then, do we get hold of other terms $\iota_{\term{x}}:\Identity{\term{x}}{\term{x}}$ aside from $\term{refl}_{\term{x}}$, or more generally a term of any type 
+$\Identity{\term{a}}{\term{b}}$ for two arbitrary terms $\term{a}:\type{A}$ and $\term{b}:\type{A}$?  How do we prove any non-trivial identity statements?  
+
+
+The only way to prove an identity (aside from \term{refl}) is to derive it from another identity given as an assumption (or produced as a \term{refl}).  That is, if we're given a term of some identity type
+$\Identity{\term{x}}{\term{y}}$ 
+then we may be able to construct from this a term of
+$\Identity{\term{a}}{\term{b}}$.  This is what we do, for example, in some inductive proofs on natural numbers: given that an identity holds for \term{n}, we must prove that it also holds for $s(\term{n})$.  We'll see how this works in the examples below.\footnote{
+This is analogous to the situation with negations: one of the main ways of proving a negation (i.e. constructing a function 
+$\bar{\term{b}}:\type{B} \to \z$) is to use some other negation term
+$\bar{\term{a}}:\type{A} \to \z$ that was provided amongst our assumptions.  Of course in that case we can also prove negations by demonstrating contradictions; there is no analogue of that here.
+}  In particular, in the next section we will introduce a way of systematically producing terms of identity types, and more generally things depending upon terms of identity types.
+
+
+
+\newpage
+\subsection{Elimination rules and internal structure}
+
+
+How do we define a function out of an identity type?  That is, how do we define a function that takes an identification as one of its inputs?  There seems to be no clear way to do this, because we don't know what \emph{arbitrary} identifications look like.  The term constructor only gives us terms of the form $\term{refl}_{\term{x}}$ for some \term{x} in the relevant type, but these are obviously special amongst identifications -- they're the trivial identifications.  Until we can say something more detailed about the form of arbitrary identifications $\iota:\IdType{\term{x}}{\term{y}}{\type{A}}$, it's not clear how we could do anything with them, such as define functions that take them as inputs.
+
+In the present section we will argue that this impression is false, and arises from an erroneous generalisation.  To see where this comes from, let's look back at other elimination rules we've defined for other types.
+
+To define a function of type $\type{A} \x \type{B} \to \type{Z}$ we used \emph{currying} -- we said that any such function can be obtained from a function of type $\type{A} \to (\type{B} \to \type{Z})$.  Any function of the latter type first takes an $\term{a}:\type{A}$ and then applies the resulting function to a $\term{b}:\type{B}$ to produce a term of \type{Z}.  This tells us, in effect, that to define a function out of a product type $\type{A} \x \type{B}$ it is sufficient to specify what that function does for any term of the form $(\term{a},\term{b})$.  We interpret this to mean that \emph{every} term of $\type{A} \x \type{B}$ is indeed of the form $(\term{a},\term{b})$ (and moreover it's possible to prove this).
+
+Similarly, to define a function of type $\type{A} \+ \type{B} \to \type{Z}$ it is sufficient to say what such a function does to 
+any term of the form $\inl(\term{a})$ for some $\term{a}:\type{A}$, and to
+any term of the form $\inr(\term{b})$ for some $\term{b}:\type{B}$.  We interpret this to mean that \emph{every} term of $\type{A} \+ \type{B}$ is indeed of the form $\inl(\term{a})$ or $\inr(\term{b})$ (and again it's possible to prove this).
+
+Finally, to define a function of type $\NN \to \type{Z}$ it is sufficient to specify what the function does to $\zN:\NN$ and what it does to any successor $\s(\term{n})$, which again fits naturally with the idea that every natural number is either $\zN$ or a successor.
+
+In each of these cases we have made a seemingly obvious step: we have gone from
+\begin{quote}
+to define a function for all terms $\term{v}:\type{V}$ it is sufficient to define it for all terms of the form $\term{w}$
+\end{quote}
+to the claim
+\begin{quote}
+all terms of \type{V} are of the form \term{w}
+\end{quote}
+Now, in the particular cases we have chosen both claims are true.  This might mislead us into thinking that the inference from the former to the latter is valid in general.  But examples from familiar mathematical domains demonstrates that this is not the case.
+
+For example, consider a finite vector space $V$, with a basis $(e_1, e_2, \ldots, e_n)$.  To define a linear function $f$ out of the vector space, it is sufficient to define $f(e_1)$, $f(e_2)$, \ldots, $f(e_n)$.  Since any other vector is of the form $a_1 e_1 + a_2 e_2 + \ldots + a_n e_n$ for some coefficients $a_1, a_2, \ldots, a_n$, linearity then extends the definition of the function to all vectors:
+\[
+f(a_1 e_1 + a_2 e_2 + \ldots + a_n e_n) \DefinedAs
+a_1 f(e_1) + a_2 f(e_2) + \ldots + a_n f(e_n)
+\]
+Thus, if we restrict attention to linear functions (as we do, for example, when we work with the category whose objects are vector spaces and whose morphisms are linear functions) then we have
+\begin{quote}
+to define a function for all vectors $v \in V$ it is sufficient to define it for all basis vectors $e_i$
+\end{quote}
+but of course it doesn't follow from this that 
+\begin{quote}
+all vectors of $V$ are basis vectors
+\end{quote}
+The structure amongst the elements of the vector space allows us to define functions on the whole space by stating the definition only for some sub-collection of elements of the space, namely the basis vectors.  This works because
+\begin{enumerate}[(i)]
+\item all vectors can be generated from the basis vectors
+\item the definition of the function carries over through the generation process
+\end{enumerate}
+
+Thus if the space on which we want to define a function has a sufficiently well-behaved internal structure then we can state the definition for just a special sub-collection of the elements of that space, and then have this definition extend to all elements of the space through the generation process.
+
+Now let's return to the present case of interest, i.e. identity types.  Although we don't know anything about generic identifications, perhaps we can show that the identity types have a suitably well-behaved internal structure, such that defining a function on just the trivial identifications $\term{refl}_{\term{x}}$ will be sufficient to extend the definition to all identifications.  The elimination rule for identity types is, as we'll see in the next few sections, exactly the assertion that identity types have this kind of structure.
+
+\newpage
+
+
+\subsection{Substitution of equals for equals}
+
+There are various ways we want to be able to use identities, but a main one is \emph{substitution of equals for equals}.  To give three examples:
+
+\begin{itemize}
+
+\item
+For any predicate $\term{P}$ on \type{A} we should have
+\[
+\Identity{\term{x}}{\term{y}}, \,
+\term{P}(\term{x})
+	\;\tstile\;
+\term{P}(\term{y})
+\]
+
+\item 
+It should be the case that 
+for any function $\term{f}: \type{A} \to \type{B}$
+\[ 
+\IdType{\term{x}}{\term{y}}{\type{A}}
+	\;\tstile\;
+\IdType
+{\term{f}(\term{x})}
+{\term{f}(\term{y})}
+{\type{B}}
+\]
+
+\item
+Furthermore, for any reflexive relation $\term{Q}(\term{x},\term{y})$ -- i.e. any relation for which we have a witness to
+$\PROD{\term{x}:\type{A}}
+{\term{Q}(\term{x},\term{x})}$ -- 
+we should have
+\[
+\Identity{\term{x}}{\term{y}}, \,
+\PROD{\term{x}:\type{A}}
+{\term{Q}(\term{x},\term{x})}
+	\;\tstile\;
+{\term{Q}(\term{x},\term{y})}
+\]
+\end{itemize}
+If we couldn't use identity types to make substitutions in this way, they could not reasonably be considered to correspond to the proposition that ``\term{x} and \term{y} are the same''.  We must therefore make these requirements part of the definition of identity types.  
+When we define the elimination rule for identity types, we must ensure that functions corresponding to the above constructions can always be given.  In the remainder of this section we will study these examples in turn and formulate a principle that enables us to carry out all three constructions.  Then in the next section we will be able to formulate the elimination rule for identity types, which enforces this principle.
+
+
+\subsubsection{Indiscernability of Identicals}
+
+The first example above is a statement of the \emph{indiscernability of identicals}.  
+Start with the trivial case, in which we take $\term{x}:\type{A}$ and $\term{x}:\type{A}$ rather than two distinct terms of \type{A}, and the self identity $\term{refl}_{\term{x}}:\IdType{\term{x}}{\term{x}}{\type{A}}$. 
+Then of course it's trivial that given a term 
+$\term{p}^{\term{x}}:\term{P}(\term{x})$
+we can produce a term of 
+$\term{P}(\term{x})$ -- we just return the term we were given.  We can formalise this as a function of type 
+$\term{P}(\term{x}) \to \term{P}(\term{x})$, namely the identity function.
+
+
+Now we require that the same holds for any $\term{x}:\type{A}$ and $\term{y}:\type{A}$ and any identification 
+$\iota:\IdType{\term{x}}{\term{y}}{\type{A}}$.
+If $\iota$ is really a witness to the fact that $\term{y}$ is the same as \term{x} then we should be able to substitute $\term{y}$ for one instance of \term{x} and $\iota$ for $\term{refl}_{\term{x}}$ in the above, and the same reasoning should hold.  So, since there is a function of type 
+$\term{P}(\term{x}) \to \term{P}(\term{x})$ that we can define when starting from 
+\term{x}, \term{x}, and $\term{refl}_{\term{x}}$, then there should likewise be a 
+function of type 
+$\term{P}(\term{x}) \to \term{P}(\term{y})$ that we can define when starting from 
+\term{x}, \term{y}, and $\iota$.
+
+The formalisation of the principle of substitution in this case just says ``if, 
+given 
+\term{x}, \term{x}, and $\term{refl}_{\term{x}}$, 
+we can define a function of type 
+$\term{P}(\term{x}) \to \term{P}(\term{x})$, then 
+given 
+\term{x}, \term{y}, and $\iota:\IdType{\term{x}}{\term{y}}{\type{A}}$, 
+we can define a function of type 
+$\term{P}(\term{x}) \to \term{P}(\term{y})$''.  
+
+Let's call this function 
+$\term{subs}(\term{x}, \term{y})(\iota):\term{P}(\term{x}) \to \term{P}(\term{y})$.
+The statement above therefore says that if we can pick a value to assign to 
+$\term{subs}(\term{x}, \term{x})(\term{refl}_{\term{x}})$ for arbitrary \term{x} then we must be able to define 
+$\term{subs}(\term{x}, \term{y})(\iota)$ for every 
+\term{x}, \term{y}, and $\iota$.  We can now make this statement completely formal.
+
+The antecedent is witnessed by any dependent function that takes an $\term{x}:\type{A}$ as input and returns a function of type 
+$\term{P}(\term{x}) \to \term{P}(\term{x})$ as output, i.e. by a dependent function of type
+\[
+\PROD{\term{x}:\type{A}}
+{\term{P}(\term{x}) \to \term{P}(\term{x})}
+\]
+The function mapping $\term{x}:\type{A}$ to the identity function on 
+$\term{P}(\term{x})$ is such a witness.
+
+Given a particular \term{x} and \term{y}, 
+$\term{subs}(\term{x}, \term{y})$ takes an identification $\iota:\IdType{\term{x}}{\term{y}}{\type{A}}$ and returns a function of type $\term{P}(\term{x}) \to \term{P}(\term{y})$.  So the type of  $\term{subs}(\term{x}, \term{y})$ is 
+$(\IdType{\term{x}}{\term{y}}{\type{A}}) \to 
+(\term{P}(\term{x}) \to \term{P}(\term{y}))$.  
+Since this clearly depends upon the particular \term{x} and \term{y} that are given, \term{subs} itself must be a dependent function:
+\[
+\term{subs}:\PROD{\term{x},\term{y}:\type{A}}
+{(\IdType{\term{x}}{\term{y}}{\type{A}}) \to 
+(\term{P}(\term{x}) \to \term{P}(\term{y}))}
+\]
+
+
+
+So now we can state the principle of substitution for the present case:
+\begin{quote}
+Given 
+%a dependent type
+%\[
+%\PROD{\term{x},\term{y}:\type{A}}
+%{(\IdType{\term{x}}{\term{y}}{\type{A}}) \to 
+%(\term{P}(\term{x}) \to \term{P}(\term{y}))}
+%\]
+%and 
+a witness
+\[
+\term{f}:\PROD{\term{x}:\type{A}}
+{\term{P}(\term{x}) \to \term{P}(\term{x})}
+\]
+we can define the dependent function
+\[
+\term{subs}:\PROD{\term{x},\term{y}:\type{A}}
+{(\IdType{\term{x}}{\term{y}}{\type{A}}) \to 
+(\term{P}(\term{x}) \to \term{P}(\term{y}))}
+\]
+\end{quote}
+%For coherence, we should add the condition
+%\begin{quote}
+%such that 
+%\[
+%\term{subs}(\term{x},\term{x})(\term{refl}_{\term{x}}) = \term{f}(\term{x})
+%\]
+%\end{quote}
+If we translate this into the language of propositions it becomes quite simple.  We wish to prove the proposition $
+\forall x,y,\, (x = y) \IMPLIES (P(x) \IMPLIES P(y))
+$.  
+To do this, we apply the principle of substitution to the obvious fact that
+$
+\forall x,\, (P(x) \IMPLIES P(x))
+$.  
+The principle of substitution we have expressed in the formal language of HTT is just saying exactly the same thing.
+
+
+\newpage
+\subsubsection{Functions respect equality}
+
+Now let's apply the same reasoning to the second example above, i.e. the requirement that for any function $\term{f}: \type{A} \to \type{B}$
+\[ 
+\IdType{\term{x}}{\term{y}}{\type{A}}
+	\;\tstile\;
+\IdType
+{\term{f}(\term{x})}
+{\term{f}(\term{y})}
+{\type{B}}
+\]
+
+We begin with the trivial fact that for any $\term{f}: \type{A} \to \type{B}$ and any $\term{x}:\type{A}$ we have
+$\IdType
+{\term{f}(\term{x})}
+{\term{f}(\term{x})}
+{\type{B}}$.  We witness this with the dependent function
+\[
+[\term{x} \mapsto \term{refl}_{\term{f}(\term{x})}]:
+\PROD{\term{x}:\type{A}}
+(\IdType
+{\term{f}(\term{x})}
+{\term{f}(\term{x})}
+{\type{B}})
+\]
+The principle of substitution now tells us that we can define a dependent function of type 
+\[
+\PROD{\term{x},\term{y}:\type{A}}
+{(\IdType{\term{x}}{\term{y}}{\type{A}}) \to 
+(\IdType
+{\term{f}(\term{x})}
+{\term{f}(\term{y})}
+{\type{B}})}
+\]
+which is exactly what we need to carry out the required construction.
+
+\subsubsection{Reflexive relations}
+
+Now let's look at the third example: for any reflexive relation $\term{Q}(\term{x},\term{y})$, 
+%if we have a witness to
+%$\PROD{\term{x}:\type{A}}
+%{\term{Q}(\term{x},\term{x})}$ then
+we should have
+\[
+\Identity{\term{x}}{\term{y}}, \,
+\PROD{\term{x}:\type{A}}
+{\term{Q}(\term{x},\term{x})}
+	\;\tstile\;
+{\term{Q}(\term{x},\term{y})}
+\]
+
+Here the fact that we can define a term for \term{x}, \term{x}, and $\term{refl}_{\term{x}}$ is not trivial (since this isn't true for every relation), but is given to us as one of the premises.  The principle of substitution then tells us that we can define a dependent function of type
+\[
+\PROD{\term{x},\term{y}:\type{A}}
+{(\IdType{\term{x}}{\term{y}}{\type{A}}) \to 
+\term{Q}(\term{x},\term{y})}
+\]
+which is exactly what we need to carry out the required construction.
+
+
+
+\newpage
+\subsubsection{The common pattern}
+
+We have seen three examples, in each case applied the principle of substitution, and seen that this would be sufficient to ensure that the required construction can in fact be carried out.  We have also seen a common pattern among the three examples: they all fit the formula 
+``if, 
+given 
+\term{x}, \term{x}, and $\term{refl}_{\term{x}}$, 
+we can define a term of type 
+$\type{Z}(\term{x},\term{x})$, then 
+given 
+\term{x}, \term{y}, and $\iota:\IdType{\term{x}}{\term{y}}{\type{A}}$, 
+we can define a term of type 
+$\type{Z}(\term{x},\term{y})$''.  In the three cases respectively, 
+$\type{Z}(\term{x},\term{y})$ was 
+\begin{align*}
+(\term{P}(\term{x}) \to \term{P}(\term{y}))
+\\
+(\IdType
+{\term{f}(\term{x})}
+{\term{f}(\term{y})}
+{\type{B}})
+\\
+{\term{Q}(\term{x},\term{y})}
+\end{align*}
+We then formalised this principle to say 
+\begin{quote}
+Given 
+a witness of type
+\[
+\PROD{\term{x}:\type{A}}
+{\type{Z}(\term{x},\term{x})}
+\]
+we can define a dependent function of type
+\[
+\PROD{\term{x},\term{y}:\type{A}}
+{(\IdType{\term{x}}{\term{y}}{\type{A}}) \to 
+\type{Z}(\term{x},\term{y})}
+\]
+\end{quote}
+
+
+\newpage
+
+\subsubsection{Path induction}
+
+Path induction generalises this pattern: we allow the type \type{Z} to depend upon not just \type{x} and \type{y}, but also upon the identification between them.  Thus the generalised principle now says:
+we have a dependent type
+\[
+\term{D}(\term{x},\term{y},\iota)
+\]
+with a witness
+\[
+\term{d}:
+\PROD{\term{x}:\type{A}}
+{\term{D}(\term{x},\term{x},\term{refl}_{\term{x}})}
+\] 
+which sends any 
+$\term{a}:\type{A}$
+to
+a witness $\term{d}(\term{a}): 
+{\term{D}(\term{a},\term{a},\term{refl}_{\term{a}})}$.
+Finally, we have an identification 
+$\term{p}:
+\Identity{\term{x}}{\term{y}}$.
+Using these, we must construct a term of
+\[
+\term{D}(\term{x},\term{y},\term{p})
+\]
+The elimination rule for identity types, path induction, is the assertion that we can indeed always construct such a term.  In particular, it's a function that produces this term for us, when given the above ingredients.  We will use path induction often when dealing with identity types, so we give this function a name: we write $\pind{\term{A}}$ for the path induction function on type \type{A}.  Given the following inputs:
+\begin{itemize}
+\item a dependent type $\term{D}$, 
+\item a witness to its reflexivity $\term{d}:\PROD{\term{x}:\type{A}}
+{\term{D}(\term{x},\term{x},\term{refl}_{\term{x}})}$, 
+\item terms $\term{x}:\type{A}$ and $\term{y}:\type{A}$, 
+\item an identification $\term{p}: \IdType{\term{x}}{\term{y}}{\type{A}}$
+\end{itemize}
+the path induction function $\pind{\type{A}}$ returns a term of 
+$\term{D}(\term{x},\term{y},\term{p})$, i.e.
+\[
+\pind{\type{A}}(
+\term{D},
+\term{d},
+\term{x}, \term{y}, \term{p}): \term{D}(\term{x},\term{y},\term{p})
+\]
+
+
+
+
+%There are two equivalent formulations of the elimination rule, called  \terminology{path induction} and \terminology{based path induction} (for reasons to be explained later).  We will begin with the latter, which is perhaps a little simpler; we'll introduce path induction and prove the equivalence of the two rules later.
+%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%
+%It turns out that the third case, in which we derive
+%${\term{Q}(\term{x},\term{y})}$ 
+%when we know that \term{Q} is reflexive and we have an identification
+%$\Identity{\term{x}}{\term{y}}$,
+%is the level of generality we need; as we'll see later, the other two examples can be recovered as special cases.  We will therefore use this as our template for defining path induction -- with one modification.
+%
+%
+%In each of the above three cases, we would expect the construction of the term on the right side of the turnstile to depend in some way upon the given identification on the left side of the turnstile.  That is, since identity types (like any other type) are in general not merely inhabited or uninhabited, we should expect that the construction does not simply depend upon the fact that there is \emph{some} identification of \term{x} and \term{y}, but on \emph{which particular} identification we're given.  Given one witness to $\Identity{\term{x}}{\term{y}}$ we construct one term of ${\term{Q}(\term{x},\term{y})}$, but if we had a different identification of \term{x} and \term{y} we might obtain a different term of ${\term{Q}(\term{x},\term{y})}$.
+%
+%
+%More generally, we should allow for the possibility that not only the witness but the \emph{proposition} itself depends upon which identification of \term{x} and \term{y} we're given.  That is, the proposition we're trying to prove might not just be of the form 
+%${\term{Q}(\term{x},\term{y})}$,
+%but rather of the form
+%$\term{D}(\term{x},\term{y},\iota)$, with $\term{x}:\type{A}$, $\term{y}:\type{A}$, and $\iota:\Identity{\term{x}}{\term{y}}$.
+%Thus \term{D} is a relation between an $\term{x}:\type{A}$, a $\term{y}:\type{A}$ and an identification $\iota:\Identity{\term{x}}{\term{y}}$.
+%
+%Reflexivity of a relation $\term{Q}(\term{x},\term{y})$ is represented by the dependent function type $\PROD{\term{x}:\type{A}}
+%{\term{Q}(\term{x},\term{x})}$, and so is witnessed by a dependent function of this type, i.e. a function that takes an $\term{a}:\type{A}$ as input and returns a witness $\term{q}^{\term{a}\term{a}}: \term{Q}(\term{x},\term{x})$ as output.
+%
+%When we generalise to consider propositions that also depend upon the identification between \term{x} and \term{y}
+%we must suitably modify the statement that $\term{D}$ is reflexive.  
+%%$\term{D}(\term{x},\term{y},\iota)$
+%
+%
+
+
+
+
+\newpage
+\subsection{Properties of the identity}
+
+Identity must be an equivalence relation: it must be reflexive, symmetric and transitive.  We therefore need to prove that these hold for the identity type.
+
+\begin{Theorem}
+For any type \type{A} and any term $\term{x}:\type{A}$ there is a term of $\IdType{\term{x}}{\term{x}}{\type{A}}$.
+\end{Theorem}
+\begin{Proof}
+We always have
+$\term{refl}_{\term{x}}:
+\IdType{\term{x}}{\term{x}}{\type{A}}$.
+\end{Proof}
+
+
+
+\begin{Theorem}
+For any type \type{A} and any terms $\term{x}:\type{A}$ and $\term{y}:\type{A}$,
+\[
+\term{p}:\IdType{\term{x}}{\term{y}}{\type{A}}
+\;\tstile \;
+\IdType{\term{y}}{\term{x}}{\type{A}}
+\]
+\end{Theorem}
+
+\begin{Proof}
+The dependent type 
+$\term{D}(\term{x},\term{y},\iota) \DefinedAs (\IdType{\term{y}}{\term{x}}{\type{A}})$ corresponds to the proposition that \term{y} is equal to \term{x}.  We need to construct a term of this type.  
+
+First we want to show that this type is indeed reflexive.  This requires that we construct a term of 
+\[
+\PROD{\term{a}:\type{A}}
+{\term{D}(\term{a},\term{a},\term{refl}_{\term{a}})}
+\]
+i.e. a function that maps terms $\term{a}:\type{A}$ to terms of the corresponding ${\term{D}(\term{a},\term{a},\term{refl}_{\term{a}})}$.
+For any $\term{a}:\type{A}$ we have 
+%$\term{D}(\term{x},\term{x},\term{refl}_{\term{x}}) \DefinedAs \IdType{\term{x}}{\term{x}}{\type{A}}$
+%and so we have
+$\term{refl}_{\term{a}}: \term{D}(\term{a},\term{a},\term{refl}_{\term{a}})$.  Thus the function we want is simply $[\term{a} \mapsto \term{refl}_{\term{a}}]$.  This is our witness to the reflexivity of $\term{D}$.
+
+Now path induction says that whenever we have a reflexive dependent type $\term{D}$ and an identification $\term{p}:\IdType{\term{x}}{\term{y}}{\type{A}}$, we have a term of 
+$\term{D}(\term{x},\term{y},\term{p})$, which is what we require.
+\end{Proof}
+
+
+
+
+%
+%\begin{Theorem}
+%For any type \type{A} and any terms $\term{x}:\type{A}$,  $\term{y}:\type{A}$, and $\term{z}:\type{A}$
+%\[
+%\IdType{\term{x}}{\term{y}}{\type{A}}, \;
+%\IdType{\term{y}}{\term{z}}{\type{A}}
+%\;\tstile \;
+%\IdType{\term{x}}{\term{z}}{\type{A}}
+%\]
+%\end{Theorem}
+
+
+
+
+%\newpage
+
+%Now we must prove that the other two principles follow from path induction.
+%
+%\begin{Theorem}
+%For any predicate $\term{P}$ on \type{A},
+%\[
+%\Identity{\term{x}}{\term{y}}, \,
+%\term{P}(\term{x})
+%	\;\tstile\;
+%\term{P}(\term{y})
+%\]
+%\end{Theorem}
+%
+%
+%
+%\begin{Theorem}
+%For any function $\term{f}: \type{A} \to \type{B}$
+%\[ 
+%\IdType{\term{x}}{\term{y}}{\type{A}}
+%	\;\tstile\;
+%\IdType
+%{\term{f}(\term{x})}
+%{\term{f}(\term{y})}
+%{\type{B}}
+%\]
+%\end{Theorem}
+%
+%
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Does intensionality of the type theory tell us anything about identity types?
+
+%Recall from Section \ref{} the argument for why we must work in an intensional type theory rather than an extensional one.  In an extensional system we have entities that are equal, and therefore interchangeable, but which we cannot determine to be so.  This is because extensional equality of two collections may be hard to determine -- it may require solving a hard problem, or proving something like Fermat's Last Theorem -- or may even be impossible to determine.\footnote{
+%TODO: Example of the latter?
+%}
+%This means that we may be unable to determine the truth or falsity of some statements we can write down: the equality statements themselves, for example, or anything we get by replacing a set by a (hypothetically) extensionally equal one where the extensional equality can't be proved.  
+%
+%Since we always want to be able to determine the truth value of any statement we can write down, by computational means in finite time, this rules out extensional collections.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%

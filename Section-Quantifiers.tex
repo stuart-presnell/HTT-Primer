@@ -1,0 +1,430 @@
+\section{Quantifiers}
+\label{sec:Quantifiers}
+
+We have now demonstrated how a constructive propositional logic can be incorporated into our type theory.  But propositional logic isn't enough for the purposes of doing mathematics -- we need predicate logic as well.  We therefore need to find a way of incorporating \emph{quantifiers} as well.  In this section we'll see how to do that, first examining how the universal and existential quantifiers should be understood in constructive logic under the BHK interpretation, and then defining how they are implemented in the type theory.
+
+Recall that in constructive logic under the BHK interpretation the meaning of a mathematical proposition is closely tied to its method of verification: we only say that a proposition is true when we have a witness to it, where witnesses to compound propositions are related to witnesses to their components.  Our first task, then, is to work out what a witness to a quantified proposition is.  
+
+
+\subsection{Predicates and Universes}
+\label{sec:Quantifiers-PredicatesUniverses}
+
+A quantified proposition is of the form 
+$(\forall x)\, \phi(x)$ or  
+$(\exists x)\, \phi(x)$ 
+for some \terminology{predicate} $\phi$, with $x$ ranging over some ``domain of discourse''.  Sometimes we make the domain of discourse explicit.  In set theory the domain of discourse will be a set $A$, so we would write 
+$(\forall x \in A)\, \phi(x)$ or 
+$(\exists x \in A)\, \phi(x)$.
+
+\subsubsection{What is a predicate?}
+\label{sec:Quantifiers-WhatIsAPredicate}
+
+To translate this into our type theory we first need to translate the predicate $\phi$.  What is this?  $\phi$ itself is not a proposition -- it corresponds to something like ``\ldots~is red'' or ``\ldots is prime'', where the ``\ldots'' has not been filled in with any particular entity.\footnote{
+Cite Frege on predicates as ``unsaturated'' functions.
+}  
+So it is more like a function that takes some entity $x$ as input and returns as output a proposition involving $x$.  For example, if $\phi$ corresponds to ``\ldots is prime'', then $\phi(5)$ is the proposition ``5 is prime'' and $\phi(12)$ is the proposition ``12 is prime''.
+
+But what kind of function could this be?  A function of type $\type{A} \to \type{B}$ takes a terms of \type{A} as input and returns a term of \type{B}.  However, we want a predicate to be a function that takes a term of some type as input and returns a \emph{type} (i.e. a proposition) as output.  What could the type of such a function be?
+
+
+\subsubsection{A new type called $\TYPE$}
+\label{sec:Quantifiers-TypeCalledTYPE}
+
+The answer to this, which might seem a little odd and perhaps a little dangerous at first, is to introduce a new type -- a type whose \emph{terms} are all the types we've encountered so far.
+That is, for every type\footnote{
+At least, every type that we've ben able to define so far -- see Section~\ref{} for a more precise statement.
+}
+\type{A}, 
+\type{B}, 
+$\type{X} \x \type{Y}$, etc. 
+we have
+$\type{A}:\TYPE$, 
+$\type{B}:\TYPE$, 
+$\type{X} \x \type{Y}:\TYPE$, etc. 
+
+This solves our problem: 
+a predicate \term{P} that asserts things about terms of type \type{A} is a function of type $\type{A} \to \TYPE$.  It takes a term $\term{x}:\type{A}$ as input, and returns $\type{P}(\term{x}):\TYPE$ as output.
+
+
+Before we can accept this solution we need to overcome two difficulties: 
+\begin{enumerate}
+\item Doesn't introducing this ``type of types'' immediately open the door to paradox?  
+\item This seems too weird -- isn't it incompatible with the whole idea of having terms and types as distinct things?
+\end{enumerate}
+Let's address the second issue first.
+
+We first introduced types as ``kinds of things that a mathematical entity could be''.  
+Some mathematical entities are integers, so \emph{integer} is a type; 
+some mathematical entities are points in the Euclidean plane, so 
+\emph{point in the Euclidean plane} is a type; and so on.  We didn't put any kind of limits on what types there are, so any well-defined ``kind of mathematical entity'' should correspond to a type.\footnote{
+TODO: Update this to cover ``types as mathematical concepts''.
+}
+
+If we are to take this defining concept seriously, we have two options:
+we can either \emph{deny} that types themselves are mathematical entities, in which case \emph{type} is not a kind of thing that mathematical entities could be; alternatively, if we accept that types are mathematical entities, we could deny the assumption that for every kind of mathematical entity there is a type to which they belong.
+The former option seems unmotivated: we're doing mathematics and logic using types, so they certainly seem like mathematical entities of some kind.  The second option is somewhat less unmotivated, but needs to be spelled out in more detail.  Which kinds of mathematical entities don't have types that they belong to?  Is it just types themselves -- and if so, why?  The main motivation for making such a distinction likely boils down to worries about the potential for introducing paradox or circularity.  So let's deal with that issue now.
+
+
+
+\subsubsection{Is \TYPE\ paradoxical?}
+\label{sec:Quantifiers-IsTYPEParadoxical}
+
+Introducing \TYPE\ seems dangerous because a type that contains all types as terms must contain itself as a term, which surely leads to trouble.  And indeed, if we had $\TYPE:\TYPE$ then a paradox would arise.\footnote{
+TODO: Citation to Girard's paradox?
+}
+But this is \emph{not} what we're introducing here.	 Note that the proposal, as stated in Section~\ref{}, is to introduce ``a type whose terms are \emph{all the types we've encountered so far}''.  So the type \emph{integer} is a term of \TYPE, but \TYPE\ itself is not.  Likewise, nor is any predicate type $\type{A} \to \TYPE$, since these could not have been defined before we introduced \TYPE\ itself.  So, to be more precise, the terms of \TYPE\ are all the types whose definitions can be given without introducing \TYPE\ itself.
+
+By making this small compromise we able to retain the idea that types are mathematical entities and every kind of mathematical entity belongs to a type -- without introducing paradox.
+
+But wait!  Don't we have some exceptions to the above claim?  What about \TYPE, and $\type{A} \to \TYPE$, and any other types that we can now define involving \TYPE?  These all look like types, so shouldn't there be a type that they all belong to?  The answer of course is yes, and so we cannot rest at introducing just \TYPE\ alone.  To do justice to the idea that \emph{types are terms of some higher type} we must introduce a whole hierarchy $\TYPE_0$, $\TYPE_1$, $\TYPE_2$, \ldots, where what we've called \TYPE\ above is really $\TYPE_0$, and a type whose definition depends upon $\TYPE_i$ belongs to $\TYPE_{i+1}$.  To handle this hierarchy we invoke \terminology{Grothendieck universes}.\footnote{In the HoTT Book, $\TYPE_i$ is written $\mathcal{U}_i$.
+}
+
+However, this becomes a little complicated, and is not really necessary in order to understand the basic problem that we introduced \TYPE\ to solve: namely, the ability to define predicates.  So for now let's just use \TYPE, but use it carefully (in particular bearing in mind that \TYPE\ is something different from the types it contains -- we don't have $\TYPE:\TYPE$).  So \emph{strictly speaking} what we'll say in the following involving \TYPE\ is not quite correct since it ignores or collapses the hierarchy of universes, but be assured that it can be patched to be made rigorous when we eventually need to.
+
+\newpage
+\subsection{The BHK interpretation of quantifiers}
+\label{sec:Quantifiers-BHKQuantifiers}
+
+In this section we'll look at quantified statements in set theoretic notation, i.e. 
+$(\forall x \in A)\, \phi(x)$ and 
+$(\exists x \in A)\, \phi(x)$, and how to understand them under the BHK interpretation.  We'll work out how to translate them into type theory in the next section.
+
+\subsubsection{BHK interpretation of universal quantifier}
+
+Given a predicate $\phi$, the universally quantified proposition 
+$(\forall x \in A)\, \phi(x)$
+says of every element $x \in A$ that $\phi$ holds of it, i.e. that the proposition $\phi(x)$ is true.
+
+As ever, under the BHK interpretation we can only assert that $\phi(x)$ is true when we have a witness to it, and so we can only claim that $\phi(x)$ is true for all $x \in A$
+if we can produce a witness for each such proposition.  Thus, under the BHK interpretation, a witness to 
+$(\forall x \in A)\, \phi(x)$
+must be a function that maps elements $x \in A$ to witnesses to $\phi(x)$.
+
+
+
+
+\subsubsection{BHK interpretation of existential quantifier}
+
+
+Given a predicate $\phi$, the existentially quantified proposition 
+$(\exists x \in A)\, \phi(x)$
+says that there is at least one element $x \in A$ such that $\phi$ holds of it, i.e. such that the proposition $\phi(x)$ is true.
+
+Again, we can only claim that $\phi(x)$ is true for a given $x$ if we have a witness to that proposition.  So we interpret the existentially qualified proposition as saying that there is at least one $x$ for which there is a witness to $\phi(x)$.  But again, it is not enough to claim that such an $x$ and such a witness exist -- we must be able to produce them.  Thus, under the BHK interpretation, a witness to 
+$(\exists x \in A)\, \phi(x)$
+consists of a particular $x \in A$, along with a witness to the proposition $\phi(x)$.
+
+
+
+\subsection{Translating this into the type theory}
+\label{sec:Quantifiers-TranslatingToTypeTheory}
+
+We've seen how the quantified propositions are to be interpreted.  We've seen that a predicate $\phi$ corresponds to a function $\term{P}:\type{A} \to \TYPE$, 
+which takes a term 
+$\term{x}:\type{A}$ 
+as input, 
+and returns as output the type \type{P}(\term{x}) corresponding to the proposition $\phi(x)$.  For a given predicate $\term{P}:\type{A} \to \TYPE$ and a given $\term{x}:\type{A}$ we will often write terms of 
+$\type{P}(\term{x})$ as 
+$\term{p}^{\term{x}}:\type{P}(\term{x})$, 
+where the superscript indicates which term of \type{A} they pertain to.
+
+
+Now let's put this all together to see how to express quantified propositions in our type theory.
+
+
+
+
+\subsubsection{Dependent Function Types}
+\label{sec:Quantifiers-DependentFunctionTypes}
+
+Corresponding to the universally quantified proposition 
+$(\forall x \in A)\, \phi(x)$
+there must be some type.  Its terms -- witnesses of the proposition -- must be functions that take
+a term 
+$\term{x}:\type{A}$ 
+as input and return as output a term of type \type{P}(\term{x}).
+
+This is unlike any function we have seen before, since all previous functions of some type $\type{A} \to \type{B}$ always returned outputs of a given \emph{fixed} type \type{B}.  The functions we require now give outputs whose type is different depending upon which \emph{term} of the input type they are given.  We therefore need to introduce new technology to our type theory -- a new way of forming types, alongside product, coproduct and function types -- called the \terminology{dependent function type}.  Since we write the dependent function type with the $\prod$ symbol, it is often referred to as the $\prod$-type.\footnote{
+Alternatively it is also called the \terminology{dependent product type}, but we avoid this terminology.
+}
+
+The dependent function type 
+has one type former, which takes a type \type{A} and a predicate on \type{A}, i.e. a function $\term{P}:\type{A} \to \TYPE$.  We write the resulting dependent function type as
+\[
+\PROD{\term{x}:\type{A}}{\type{P}(\term{x})}
+\quad\quad\mbox{ or }\quad\quad
+\AltPROD{\term{x}:\type{A}}{\type{P}(\term{x})}
+\]
+We use the former notation to emphasise the resemblance to universal quantification, and the latter to emphasise the resemblance to (non-dependent) functions.
+
+There is one term constructor for the dependent function type, which is a straightforward generalisation of the $\lambda$-abstraction
+we used for function types (see Section~\ref{}).  The only difference is that whereas 
+$\lambda$-abstraction for function types
+took an expression $\Phi$ of type \type{B} that involves a variable \term{x} of type \type{A}, 
+for dependent function types we require an expression whose type \type{P}(\term{x}) depends upon \term{x}.  As before, we write the function as $\lambda \term{x} . \Phi$, or more clearly as $(\term{x} \mapsto \Phi)$.
+
+Application of a dependent function is just the same as application of a non-dependent function: when we apply 
+$\term{f}:\AltPROD{\term{x}:\type{A}}{\type{P}(\term{x})}$ 
+to any $\term{x}:\type{A}$ 
+we get some $\term{p}^{\term{x}}: \type{P}(\term{x})$.  
+
+As a special case, for any given type \type{B} we can define the ``\emph{constant} predicate'' that assigns to each $\term{x}:\type{A}$ \emph{the same} type \type{B}.  (This corresponds to a degenerate predicate $\phi$ that just ignores its argument $x$ and returns the same proposition for any $x \in A$.)
+When we choose a constant predicate for $\term{P}$ we get a ``dependent function type'', which we might write as 
+$\term{f}:\AltPROD{\term{x}:\type{A}}{\type{B}}$, 
+that is no longer dependent.  A term of this type is a function that, when applied to some $\term{x}:\type{A}$, returns some term $\term{f}(\term{x}):\type{B}$, i.e. it's just a function $\type{A} \to \type{B}$.  So (non-dependent) function types $\type{A} \to \type{B}$ are just special cases of dependent function types -- they're ones that have a ``constant predicate'' that picks the same type \type{B} for every term of its input.
+
+
+
+
+
+
+
+\newpage
+\subsubsection{Dependent Pair Types}
+\label{sec:Quantifiers-DependentPairTypes}
+
+Corresponding to the existentially quantified proposition 
+$(\exists x \in A)\, \phi(x)$
+there must be some type.  Its terms -- witnesses of the proposition -- must consist of pairs $(\term{x},\term{p}^{\term{x}})$, 
+where
+$\term{x}:\type{A}$ 
+and 
+$\term{p}^{\term{x}}:\type{P}(\term{x})$. 
+
+This is unlike the pairs that are terms of the product type $\type{A}\x\type{B}$, since in that case the second component of every pair is of the given fixed type \type{B}.  The pairs we require now have second components whose type is different depending upon the first component.  We therefore need to introduce new technology to our type theory -- another new way of forming types -- called the \terminology{dependent pair type}.  Since we write the dependent pair type with the $\sum$ symbol, it is often referred to as the $\sum$-type.\footnote{
+Alternatively it is also called the \terminology{dependent sum type}, but we will avoid this terminology.
+}
+
+The dependent pair type 
+has one type former, which takes a type \type{A} and a predicate on \type{A}, i.e. a function $\term{P}:\type{A} \to \TYPE$.  We write the resulting dependent pair type as
+\[
+\SUM{\term{x}:\type{A}}{\type{P}(\term{x})}
+\quad\quad\mbox{ or }\quad\quad
+\AltSUM{\term{x}:\type{A}}{\type{P}(\term{x})}
+\]
+We use the former notation to emphasise the resemblance to existential quantification, and the latter to emphasise the resemblance to (non-dependent) products.
+
+The term constructor for the 
+dependent pair type 
+is just like that of the product type, with the simple generalisation that when the first component is $\term{x}:\type{A}$, 
+the type of the second component $\term{p}^{\term{x}}$ is \type{P}(\term{x}).
+
+
+What about the elimination rule for dependent pairs?  Given an output type \type{Z}, how do we define a function 
+of type 
+$\left(\AltSUM{\term{x}:\type{A}}{\type{P}(\term{x})}\right) \to \type{Z}$?  In the non-dependent case, i.e. the product type, we could define a function $\term{f}:(\type{A} \x \type{B}) \to \type{Z}$ via a curried version
+$\term{g}:\type{A} \to (\type{B} \to \type{Z})$, such that for each 
+$\term{x}:\type{A}$ the output of
+$\term{g}$ is a particular 
+$\term{g}_{\term{x}}: \type{B} \to \type{Z}$.
+Similarly, the curried version of a function out of a $\sum$-type
+must be a function $\term{h}$ such that for each 
+$\term{x}:\type{A}$ the output of
+$\term{h}$ is a particular 
+$\term{h}_{\term{x}}: \type{P}(\term{x}) \to \type{Z}$ whose input type depends upon $\term{x}$.  
+%
+%What is the type of this $\term{h}$?
+%For each $\term{x}:\type{A}$ we need something depending upon $\term{x}$, so it must be a dependent function type.  The thing 
+%$\term{h}_{\term{x}}$ 
+%that we require for a given $\term{x}:\type{A}$ is of type $(\type{P}(\term{x}) \to \type{Z})$, so $\term{h}$ is of type
+%$\AltPROD{\term{x}:\type{A}}{(\type{P}(\term{x}) \to \type{Z})}$.  
+Given any dependent function of type 
+$\AltPROD{\term{x}:\type{A}}{(\type{P}(\term{x}) \to \type{Z})}$ 
+we can uncurry it to give a function of type
+$\left(\AltSUM{\term{x}:\type{A}}{\type{P}(\term{x})}\right) \to \type{Z}$.
+
+
+If, as in the previous section, we choose \term{P} to be a ``constant predicate'' that picks the same type \type{B} for each input $\term{a}:\term{A}$ then the resulting $\sum$-type, which we might write as
+$\AltSUM{\term{a}:\type{A}}{\type{B}}$, is again no longer dependent.  The terms of this type will be pairs $(\term{a}, \term{b})$, i.e. terms of the product type $\type{A} \x \type{B}$.
+So product types $\type{A} \x \type{B}$ are just special cases of dependent pair types -- they're ones that have a ``constant predicate'' that picks the same type \type{B} for every term of its input.
+
+
+
+
+
+
+
+
+
+\subsection{Other uses of dependent types}
+\label{sec:Quantifiers-OtherUsesDependentTypes}
+
+Dependent function types have uses outside of their role as universally quantified propositions, which we'll see later.
+But more interesting is the alternative interpretation we can give to $\sum$-types, aside from their role as existentially quantified propositions.
+
+We noted above (Section~\ref{}) that there's a temptation to think of types and their terms as being like sets and their members.  While we should continue to resist this temptation, there are similarities (which we'll explore later in Section~\ref{}).
+Just temporarily, let's set aside the admonition of Section~\ref{} and
+take the analogy fairly literally.  On that understanding, the dependent pair type takes on a new interpretation.  If \type{A} is like a set of elements, then
+$\AltSUM{\term{x}:\type{A}}{\type{P}(\term{x})}$
+is (approximately) like the \emph{subset} of $\type{A}$ for which the property corresponding to $\type{P}$ holds, 
+i.e. it's like 
+$\setSuchThat{x \in A}{P(x)}$.  
+%The first component of each pair in $\AltSUM{\term{x}:\type{A}}{\type{P}(\term{x})}$
+%is a term of \type{A}, but (in general) not all the terms of \type{A} are included, only those terms \term{x} for which a witness to $\type{P}(\term{x})$ can be constructed.
+
+However, it's not exactly what we would expect from a subset, because a term of
+$\AltSUM{\term{x}:\type{A}}{\type{P}(\term{x})}$
+consists of a pair 
+$(\term{x}, \term{p}^{\term{x}})$, where 
+$\term{x}:\type{A}$ and $\term{p}^{\term{x}}:\type{P}(\term{x})$.  
+Another term of the type might be a pair
+$(\term{y}, \term{q}^{\term{y}}_1)$ involving a
+different 
+$\term{y}:\type{A}$ 
+along with a witness 
+$\term{q}^{\term{y}}_1:\type{P}(\term{y})$.  
+If $\type{P}(\term{y})$ has another term $\term{q}^{\term{y}}_2$ then 
+the pair
+$(\term{y}, \term{q}^{\term{y}}_2)$ is also a term of 
+$\AltSUM{\term{x}:\type{A}}{\type{P}(\term{x})}$.
+So the same term $\term{y}:\type{A}$ can occur multiple times in multiple pairs -- one for each distinct witness of $\type{P}(\term{y})$.  Counted this way, there might be \emph{many more} terms in $\AltSUM{\term{x}:\type{A}}{\type{P}(\term{x})}$
+ than in \type{A} itself.  But let's set this issue aside for now.\footnote{
+In  Section~\ref{} we'll see how to fix this.  Roughly speaking what we'll do is collapse all the distinct proofs for a given 
+$\term{y}:\type{A}$ 
+together, so we (effectively) have just a single pair $(\term{y}, \term{q}^{\term{y}})$ where originally we may have had multiple $(\term{y}, \term{q}^{\term{y}}_1)$, $(\term{y}, \term{q}^{\term{y}}_2)$, etc.
+}
+
+In these two interpretations of the dependent pair type we see an illustration of one of the biggest differences between constructive and classical logic.  In set theory built on FOL, the interpretation of $(\exists x \in A)\, \phi(x)$ and $\setSuchThat{x \in A}{\phi(x)}$ are completely different: the former is a proposition which is simply either true or false, while the latter is a set, an object that can have substantial content.  They're related, of course -- non-emptiness of the latter set is logically equivalent to the truth of the former proposition -- but conceptually they're quite disinct.
+
+In our constructive logic, on the other hand, the distinction between the two notions is completely obscured.  Propositions are only asserted to be true when we construct witnesses to their truth, and so the proof of an \emph{existential} claim is an \emph{example}.  
+Thus, since each example is as good a witness as any other, the idea of ``the collection of all...'' 
+and the idea of 
+``there exists some...'' 
+collapse together.
+
+
+
+\newpage
+
+
+
+
+\subsection{Predicates and Relations}
+
+Having defined predicates as things that assert propositions about the terms of some type, we should look at \emph{relations}, i.e. things that assert propositions about \emph{multiple} terms of \emph{multiple} types.  Just as a predicate on \type{A} is a function of type 
+$\type{A} \to \TYPE$, so a relation is a function from multiple inputs to $\TYPE$.  
+
+As with any function of multiple inputs, we can write it either as taking a single input of product type, e.g. 
+$(\type{A} \x \type{B}) \to \TYPE$, or we can use currying to write it as $\type{A} \to (\type{B} \to \TYPE)$.  The latter will usually be more convenient for us, since it allows partial application: applying a relation of type
+$\type{A} \to (\type{B} \to \TYPE)$ to a term $\term{a}:\type{A}$ gives a predicate 
+of type $\type{B} \to \TYPE$ on \type{B}.\footnote{
+This is just parallel to the familiar fact from set-based mathematics that from any relation $R \subseteq A \times B$ we can obtain the predicate $R(a,\cdot)$ on $B$.
+}
+
+The application of relation $\type{R}$ to inputs $\term{a}:\type{A}$ and $\term{b}:\type{B}$ therefore gives a type, whose terms are witnesses to the fact that $\term{x}$ and \term{y} stand in this relation.  We may write these terms as $\term{r}^{\term{x}\term{y}}:\type{R}(\term{a}, \term{b})$.\footnote{
+Strictly, the type should be written 
+$\type{R}(\term{a})(\term{b})$, or as $\type{R}((\term{a}, \term{b}))$ if we think of the relation as a predicate on a product type.  However, for simplicity we will simply write $\type{R}(\term{a}, \term{b})$.
+}
+
+
+
+Given a predicate $\type{R}$
+%: (\type{A} \x \type{B}) \to \TYPE
+we can of course form dependent function types and dependent pair types.  A dependent function using relation
+$\type{R}$
+will be of the form
+\[
+\AltPROD{\term{a}:\type{A}}{
+(\AltPROD{\term{b}:\type{B}}
+{\type{R}(\term{a},\term{b})})
+}
+\]
+That is, it will be a function taking an $\term{a}$ and a $\term{b})$ as input and returning as output a term of $\type{R}(\term{a},\term{b})$.  
+Thus a term of this dependent function type represents the universally quantified proposition 
+$(\forall \term{a}:\type{A})(\forall \term{b}:\type{B}), {\type{R}(\term{a},\term{b})}$.
+
+Similarly, the dependent pair type using relation $\type{R}$ may be written as
+\[
+\AltSUM{\term{a}:\type{A}}{
+(\AltSUM{\term{b}:\type{B}}
+{\type{R}(\term{a},\term{b})})
+}
+\]
+and expresses the proposition
+$(\exists \term{a}:\type{A})(\exists \term{b}:\type{B}), {\type{R}(\term{a},\term{b})}$.
+
+We can of course define relations not just on product types but on dependent pair types as well.  Such a relation, which is a predicate of the form 
+$\AltSUM
+
+
+
+%We can generalise this to predicates on multiple arguments, to get things like
+%$\PROD{\term{x}:\type{A}}
+%{\PROD{\term{y}:\type{A}}
+%{\term{Q}(\term{x},\term{y})}
+%}$, where \term{Q} is now a function 
+%$\term{Q}: \type{A} \to (\type{A} \to \TYPE)$.  
+%
+%\terminology{Reflexive} relations are those for which
+%${\term{Q}(\term{x},\term{x})}$ 
+%holds for all $\term{x}:\type{A}$.
+
+%We can of course extend this to relations on more than two inputs by defining predicates on products of more than two types.
+
+
+\subsection{Mixed quantification}
+
+
+The above expressions involve just a single type of quantifier, either universal or existential.  However, we also want to be able to express mixed-quantifier propositions of the form 
+\[
+\forall \term{a}:\type{A},\, \exists \term{b}:\type{B},\, {\type{R}(\term{a},\term{b})}
+\quad\quad
+\mbox{and}
+\quad\quad
+\exists \term{a}:\type{A},\, \forall \term{b}:\type{B},\, {\type{R}(\term{a},\term{b})}
+\]
+We can do this very easily with dependent function and product types, as
+\[
+\PROD{\term{a}:\type{A}}{
+\SUM{\term{b}:\type{B}}
+{\type{R}(\term{a},\term{b})}}
+\quad\quad
+\mbox{and}
+\quad\quad
+\SUM{\term{a}:\type{A}}{
+\PROD{\term{b}:\type{B}}
+{\type{R}(\term{a},\term{b})}}
+\]
+respectively.  To unpack these we simply follow the definitions of the $\Pi$- and $\Sigma$-types involved:
+\begin{itemize}
+\item A term of 
+$\PROD{\term{a}:\type{A}}{
+\SUM{\term{b}:\type{B}}
+{\type{R}(\term{a},\term{b})}}$
+is a function that takes an $\term{x}:\type{A}$ as input and returns a pair $(\term{y}, \term{r}^{\term{x}\term{y}})$, where $\term{y}:\type{B}$ and 
+$\term{r}^{\term{x}\term{y}}: 
+\type{R}(\term{x},\term{y})$
+\item A term of 
+$\SUM{\term{a}:\type{A}}{
+\PROD{\term{b}:\type{B}}
+{\type{R}(\term{a},\term{b})}}$
+is a pair $(\term{x},\term{f})$ where $\term{x}:\type{A}$ and
+$\term{f}:
+\PROD{\term{b}:\type{B}}
+{\type{R}(\term{x},\term{b})}$ is a function that takes a $\term{y}:\type{B}$ and returns a $\term{r}^{\term{x}\term{y}}: 
+\type{R}(\term{x},\term{y})$.
+\end{itemize}
+We can of course extend this to produce propositions with any number of quantifiers.
+
+
+
+\newpage
+\subsection{Quantifying over other types}
+
+We have seen that quantifying over a product type $\type{A} \x \type{B}$ is equivalent to quantifying separately over each of the two types \type{A} and \type{B}.  What about other types?
+
+\subsubsection{Quantifying over coproducts}
+
+A term of 
+$\PROD{\term{c}:\type{A} \+ \type{B}}{\type{R}(\term{c})}$
+says that $\type{R}$ holds for any term of \type{A}, and for any term of \type{B}.  Thus this should be equivalent to 
+$\PROD{\term{a}:\type{A}}{\type{R}(\term{a})} \x
+\PROD{\term{b}:\type{B}}{\type{R}(\term{b})}$.
+
+A term of 
+$\SUM{\term{c}:\type{A} \+ \type{B}}{\type{R}(\term{c})}$
+says that $\type{R}$ holds for some term that is either a term of \type{A} or a term of \type{B}.  Thus this should be equivalent to 
+$\SUM{\term{a}:\type{A}}{\type{R}(\term{a})} \+
+\SUM{\term{b}:\type{B}}{\type{R}(\term{b})}$.
+
+Of course, the above cannot be quite right as stated, since in each case \type{R} is a predicate with a particular input type, and so we cannot simply change its input type from $\type{A} \+ \type{B}$ to \type{A}.  We therefore need to be more careful about our definitions.

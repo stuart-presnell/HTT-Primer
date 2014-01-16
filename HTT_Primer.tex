@@ -1,0 +1,403 @@
+\documentclass[12pt, a4paper]{article}
+\pagestyle{plain}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{2mm}
+
+\usepackage{geometry}
+% \geometry{bindingoffset=4cm}
+\geometry{bindingoffset=0cm}
+
+\input{_packages_and_newcommands}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Putting date \& time, section number into header of every page
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{fancyhdr, datetime}
+\setlength{\headheight}{15.2pt}
+\renewcommand{\headrulewidth}{0.25pt}
+\renewcommand{\footrulewidth}{0pt}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{DRAFT: \currenttime, \today }
+\rhead{Section \thesubsection}
+\cfoot{\thepage}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\author{Stuart Presnell \& James Ladyman
+\\stuart.presnell@bristol.ac.uk
+\\james.ladyman@bristol.ac.uk
+}
+\title{A Primer on \\Homotopy Type Theory
+\\ (version 2.13)
+}
+% \institute[Bristol]{
+  % Department of Philosophy\\
+  % University of Bristol\\
+  % Cotham House, Bristol BS6 6JL\\[1ex]
+  % \texttt{stuart.presnell@bristol.ac.uk}
+% }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+\maketitle
+\begin{abstract}
+A brief introduction to Homotopy Type Theory and some of the associated ideas.
+
+The original source for the ideas presented here is the ``HoTT Book'' -- \emph{Homotopy Type Theory: Univalent Foundations of Mathematics} published by The Univalent Foundations Program, Institute for Advanced Study, Princeton.\footnote{
+Page numbers for the HoTT book refer to the edition on Google Books, available at 
+\href{http://books.google.co.uk/books?id=LkDUKMv3yp0C}{http://books.google.co.uk/books?id=LkDUKMv3yp0C}.
+However, the book is being continually corrected and updated.  The latest edition (last updated on September 21st 2013 at the time of writing this document) is available at 
+\href{http://homotopytypetheory.org/book/}{http://homotopytypetheory.org/book/}.
+}  
+However, the exposition in that book is rather dense and fast, whereas these notes are more gently paced for the beginner and also do more to motivate, justify, and explain things in more detail, and also address foundational and philosophical issues that the book does not.  In later sections we also go through a number of worked examples that are not covered in the book.
+\end{abstract}
+
+\newpage
+\setcounter{tocdepth}{2}
+\tableofcontents
+
+\newpage
+
+
+
+\input{Sections-1-4}
+%\newpage
+
+
+%\setcounter{section}{4}	%% intended section number - 1
+%\input{Section-DoingLogic}
+%\newpage
+
+
+%\setcounter{section}{5}	%% intended section number - 1
+%\input{Section-Models-v0}
+%\newpage
+
+%\setcounter{section}{6}
+%\input{Section-RecursiveTypes}
+%\newpage
+
+% \setcounter{section}{9}	%% intended section number - 1
+% \input{Section-Quantifiers}
+% \newpage
+
+%\setcounter{section}{10}	%% intended section number - 1
+%\input{Section-PredicateLogic}
+%\newpage
+
+% \setcounter{section}{11}	%% intended section number - 1
+% \input{Section-Continuity}
+% \newpage
+
+% \setcounter{section}{12}	%% intended section number - 1
+% \input{Section-IdTypes}
+%\newpage
+
+
+
+
+
+
+
+
+
+
+% \section{More things left to write}
+% %
+
+
+% \subsection{Recursion, Induction, and Polymorphism}
+%
+%\subsubsection{Recursion: Systematizing function definitions}
+%%
+%%In previous sections -- in particular, in Sections~\ref{} and~\ref{} --  we've made various arguments that, given some particular inputs, a particular output can be constructed.  For example, in Section~\ref{} we argued that given a function
+%%$\term{f}:\type{A} \to (\type{B} \to \type{C})$
+%%we could construct a function
+%%$\term{g}:(\type{A} \x \type{B}) \to \type{C}$
+%%which works by extracting 
+%%$\term{a}:\type{A}$
+%%and 
+%%$\term{b}:\type{B}$, applying $\term{f}$ to $\term{a}$ to get 
+%%$\term{f}_{\term{a}}:\type{B} \to \type{C}$, and then applying 
+%%$\term{f}_{\term{a}}$ to \term{b} to get 
+%%$\term{f}_{\term{a}}(\term{b}):\type{C}$.
+%%
+%%
+%%The above construction didn't depend upon any details of 
+%%the function $\term{f}$ that we were given, since all we know about \term{f} is its type.  
+%%So the same method will always work to construct a function $\term{g}:(\type{A} \x \type{B}) \to \type{C}$
+%%for any function $\term{f}:\type{A} \to (\type{B} \to \type{C})$.  
+%%
+%%We can see that this is true by inspection of the definition of $\term{g}$.  But we can do better than that: now that we have dependent types we can state and prove this within the language of our type theory.  That is, we can express the proposition ``for all functions 
+%%$\term{f}:\type{A} \to (\type{B} \to \type{C})$
+%%there is a function
+%%$\term{g}:(\type{A} \x \type{B}) \to \type{C}$'', which corresponds to a particular dependent type, and then prove it by exhibiting a term of that type -- i.e. a function that maps any given $\term{f}$ to the corresponding $\term{g}$ that we construct from $\term{f}$.
+%%
+%%Recall that we used this definition (which we called ``uncurrying'') in Section~\ref{} in order to say how to define functions out of the product type.  Back then we merely claimed, and gave the above informal proof, that functions of type
+%%$(\type{A} \x \type{B}) \to \type{C}$ could be constructed from functions of type
+%%$\type{A} \to (\type{B} \to \type{C})$.  But now we can rigorously and formally prove this, and give a standard name to the process that carries out the construction.
+%%
+%%Similarly, in the definition of coproducts (Section~\ref{}) we said that a function out of the coproduct
+%%$\term{f}: (\type{A} \+ \type{B}) \to \type{C}$
+%%could be constructed if we had functions
+%%$\term{g}_l: \type{A} \to \type{C}$
+%%and
+%%$\term{g}_r: \type{B} \to \type{C}$.  Again, the construction didn't depend upon details of those two functions, since all we know about them is their type.  Thus the construction of \term{f} from $\term{g}_l$ and $\term{g}_r$ can be completely formalised, and we can define a function that maps pairs $(\term{g}_l, \term{g}_r)$ to the corresponding constructed functions 
+%%$\term{f}: (\type{A} \+ \type{B}) \to \type{C}$.
+%%
+%%
+%%More generally, for any type \type{T} that we can define, we will likely want to know how define functions out of \type{T}.  Once we've worked out what ingredients are required in order to be able to define such a function, and how to construct the function from those inputs in a standardised uniform manner, we can go on to define a function that formalises this construction process, mapping the required inputs to the corresponding constructed function out of \type{T}.
+%%
+%%In this section we'll see how to define these ``function constructing functions'', which we call \terminology{recursors} for their corresponding types (for reasons that will be explained later).
+%%
+%%
+%%
+%%
+%%%\subsection{The recursor for the Product type}
+%%%
+%%%
+%%%For example: when we said how to use a product type \PType{A}{B} -- i.e. how to define functions out of them -- we said that, for any type \type{C}, functions of type \FType{\PType{A}{B}}{C} are given by curried functions \FType{A}{(\FType{B}{C})}.  We \emph{said} it, but now we can formalise it.  When we say ``$x$ is given by $y$'', what we ought to mean, if that idea can be expresed formally, is that there's a \emph{function} that takes $y$ as input and gives $x$ as output.  
+%%%
+%%%So what's the type of this function?  First, it must be a polymorphic type, since we can apply it with any type \type{C}.  Then, given any particular \type{C}, we should have a function taking functions of type 
+%%%\FType{A}{(\FType{B}{C})} and returning functions of type \FType{\PType{A}{B}}{C}.  So the type we're looking for is:
+%%%\[
+%%%\PROD{\type{C}}{\TYPE}{
+%%%\FType
+%%%{(\FType{A}{(\FType{B}{C})})}
+%%%{(\FType{\PType{A}{B}}{C})}
+%%%}
+%%%\]
+%%%(where the scope of the $\prod$ encloses the entire expression).
+%%%
+%%%So we should be able to write down a specific function of this type.  For reasons that will be explained later, we'll call this function the \newIdea{recursor} for this product type, 
+%%%$\term{rec}_{\type{A} \times \type{B}}$.  Its first argument will be a type \type{C}; its second argument will be a function (let's call it \term{g}) of type \FType{A}{(\FType{B}{C})}.  $\term{rec}_{\type{A} \times \type{B}}(\type{C})(\term{g})$ is then a function of type (\FType{\PType{A}{B}}{C}).  If we feed a pair $(\term{a}, \term{b})$ to that function, it should give us a term of type \type{C}.  Which term?  It must be the term we get by feeding first \term{a} and then \term{b} into the function \term{g}.  We summarize all this by saying
+%%%\[
+%%%\term{rec}_{\type{A} \times \type{B}}(\type{C})(\term{g})((\term{a}, \term{b})) 
+%%%\DefinedAs
+%%%\term{g}(\term{a})(\term{b})
+%%%\]
+%%%
+%%%Exercise: which type and which function do we need to feed into $\term{rec}_{\type{A} \times \type{B}}$ to get the first projection function for products?  Which for the second projection?
+%%
+%%
+%%%\subsection{The recursor for the Coproduct type}
+%%%
+%%%We went through that first example in fine detail; for the coproduct type we'll move a bit more quickly.
+%%%
+%%%Recall that to define a function out of a coproduct type $\FType{(\CType{A}{B})}{C}$ we need functions of types \FType{A}{C} and \FType{B}{C}, and that's all we need.  So the recursor for coproduct types, 
+%%%$\term{rec}_{\type{A} + \type{B}}$ 
+%%%will be a polymorphic function quantified over all types, taking two further inputs of those two respective function types.  The type of 
+%%%$\term{rec}_{\type{A} + \type{B}}$ 
+%%%is therefore
+%%%\[
+%%%\PROD{\type{C}}{\TYPE}{
+%%%(\FType{A}{C})
+%%%\to
+%%%	((\FType{B}{C})
+%%%	\to
+%%%	(\FType{\CType{A}{B}}{C}))
+%%%}
+%%%\]
+%%%
+%%%$\term{rec}_{\type{A} + \type{B}}(\type{C})(\term{g}_l)(\term{g}_r)$ is then a function of type \FType{\CType{A}{B}}{C}.  We can give it either a term of the form $inl(\term{a})$ or  a term of the form $inr(\term{b})$.  We therefore need to complete the definition of $\term{rec}_{\type{A} + \type{B}}$ by \emph{case analysis}:
+%%%\begin{align*}
+%%%\term{rec}_{\type{A} + \type{B}}(\type{C})(\term{g}_l)(\term{g}_r)(inl(\term{a})) 
+%%%&\DefinedAs \term{g}_l(\term{a}) \\
+%%%\term{rec}_{\type{A} + \type{B}}(\type{C})(\term{g}_l)(\term{g}_r)(inr(\term{b})) 
+%%%&\DefinedAs \term{g}_r(\term{b}) 
+%%%\end{align*}
+%%%
+%%%
+%%%\subsection{Recursors for the Zero and Unit types}
+%%%
+%%%Since there are no terms of the Zero type \type{0}, to construct a (trivial) function to some type \type{C} we just need to be given \type{C} itself.  So the recursor $\term{rec}_\type{0}$ for the Zero type is a polymorphic function of type $\PROD{\type{C}}{\TYPE}{\FType{0}{C}}$, and 
+%%%$\term{rec}_\type{0}(\type{C})$
+%%%is the trivial function of type 
+%%%\FType{0}{C}.
+%%%
+%%%There is just a single term, \term{$\ast$}, of the Unit type \type{1}, so a function from \type{1} to another type \type{C} picks out a single term of \type{C}.  To define such a function, then, we need to have some element of \type{C} that the function can pick out.  Thus the recursor $\term{rec}_\type{1}$ must take two arguments, the first being a type and the second being a term of that type.  $\term{rec}_\type{1}(\type{C})(\term{c})$ is then the function of type \FType{1}{C} that picks out $\term{c}$, i.e. $\term{rec}_\type{1}(\type{C})(\term{c})(\term{$\ast$}) \DefinedAs \term{c}$.  The recursor for \type{1} appears to be quite useless, since we have to provide the term \term{c} that the function produced wil give back to us; it may in fact be ``completely useless'' (as the HoTT Book describes it, Section 1.5).\footnote{
+%%%But perhaps not: the function produced resembles a ``thunk'' as used in functional programming (i.e. a function of no arguments that returns a specific value).  These are used as ``promises to compute a value'', which allows us to delay evaluation of functions.  Maybe this resemblance will turn into something useful in type theory \ldots?}  
+%%
+%%
+%%
+%%
+%\subsubsection{Induction: Constructing dependent functions}
+%%
+%%How do we prove that some property holds of all terms of some type \type{T}?  As we saw in Section~\ref{}, the property in question will be some predicate
+%%$\term{P}:\type{T} \to \TYPE$, and the universally quantified claim will be a dependent function type
+%%$\PROD{\term{t}:\type{T}}{\type{P}(\term{t})}$.  To construct a term of this type -- i.e. a witness to the universal proposition -- we will in general need some particular ingredients, but given those ingredients there should be some uniform way of constructing that witness.
+%%
+%%This is parallel to the situation of the previous section.  In this section we will see how to generalise the work we did there to cover this further case.  Whereas in the previous section we defined the \emph{recursor} for a type, in this section we will define the \terminology{inductor}.  In Section~\ref{} we'll compare recursors and inductors, but first let's see a very simple example of how an inductor is defined.
+%%
+%%
+%%
+%%\subsection{Simple example: the inductor for \type{2}}
+%%
+%%Let's revisit the simple type $\type{2}$ we introduced in Section~\ref{}, which has just two term constructors, 
+%%$\term{0}_{\type{2}}:\type{2}$
+%%and
+%%$\term{1}_{\type{2}}:\type{2}$.  How do we prove that some predicate $\term{P}:\type{2} \to \TYPE$ holds for all terms of \type{2}?  
+%%
+%%This may not be the only way to do it, but we know we can certainly prove it for all terms if we are given a particular proof for each term!  That is, if we have 
+%%a witness that $\term{P}$ holds for $\term{0}_{\type{2}}$
+%%and
+%%a witness that $\term{P}$ holds for $\term{1}_{\type{2}}$
+%%then we can construct a witness to the proposition ``for all terms of \type{2}, $\term{P}$ holds for that term''.  (This is utterly trivial, of course, but we've deliberately chosen a trivial example to see how the basic mechanism works before moving onto more complex examples.)
+%%
+%%It is now straightforward to formalise the construction of a proof of the universally quantified statement from these two witnesses in a way that mirrors the definition of the recursor in the previous section.
+%%
+%%Let's start by translating the above claim into type-theoretic language: 
+%%if we have
+%%a term $\term{p}_0: \type{P}(\term{0}_{\type{2}})$ 
+%%and
+%%a term $\term{p}_1: \type{P}(\term{1}_{\type{2}})$ 
+%%then we can construct a term of the dependent function type
+%%$\PROD{\term{x}:\type{2}}{\type{P}(\term{x})}$, i.e. a function \term{f} that takes a term $\term{x}:\type{2}$ as input and returns a term of the corresponding type \type{P}(\term{x}) as output.  The definition of \term{f} is a straightforward case analysis on \type{2}:
+%%\[
+%%\term{f}(\term{0}_{\type{2}}) \DefinedAs \term{p}_0
+%%\]
+%%\[
+%%\term{f}(\term{1}_{\type{2}}) \DefinedAs \term{p}_1
+%%\]
+%%
+%%We now formalise this (trivial) construction by defining the \terminology{inductor} for \type{2} (with predicate $\term{P}$), 
+%%which we'll call
+%%$\ind{\type{2}, \term{P}}$.
+%%
+%%The inductor must be a function that takes the two witnesses 
+%%$\term{p}_0$ and $\term{p}_1$
+%%as inputs and returns the above $\term{f}$ as output.  It is therefore a function of type
+%%\[
+%%\type{P}(\term{0}_{\type{2}}) \to
+%%\left(
+%%\type{P}(\term{1}_{\type{2}}) \to
+%%\PROD{\term{x}:\type{2}}{\type{P}(\term{x})}
+%%\right)
+%%\]
+%%defined by case analysis on \type{2} as:
+%%\[
+%%\ind{\type{2}, \term{P}}(\term{p}_0)(\term{p}_1)(\term{0}_{\type{2}})
+%% \DefinedAs \term{p}_0
+%%\]
+%%\[
+%%\ind{\type{2}, \term{P}}(\term{p}_0)(\term{p}_1)(\term{1}_{\type{2}})
+%% \DefinedAs \term{p}_1
+%%\]
+%%
+%%As in the previous section, we have taken the informal meta-language claim that we can always construct a proof of the universal from proofs of the particulars and turned it into a completely formal thing: a function within the language of our type theory that actually carries out this construction.  We've again gone from saying that we \emph{can} do it to explicitly saying \emph{how} to do it.
+%%
+%%Of course, this wasn't a very impressive achievement in the trivial case of a predicate on \type{2}, since \type{2} has just two terms which we can name explicitly!  But the same principle applies to arbitrary other types \type{T} -- if we know how to define a term of the dependent function type 
+%%$\PROD{\term{t}:\type{T}}{\type{P}(\term{t})}$
+%%(for some predicate $\term{P}$) given some ingredients, then we can define an inductor $\ind{\type{T}, \term{P}}$ that takes those ingredients as input and returns the corresponding constructed witness as output.  In general the ingredients we're given won't consist of a \emph{particular} proof for \emph{each and every term} $\term{t}:\type{T}$, since in general we won't be able to enumerate all the terms of \type{T} like we could for \type{2}.  Rather, the ingredients will be more general things that relate to the way \term{T} is put together.  We'll see some examples of this in the next few sections, where we consider the inductors for the product and coproduct types.
+%%
+%%%\subsection{Induction for Product Types}
+%%%
+%%%Recall that the \emph{recursor} for Product types was a polymorphic function $\term{rec}_{\type{A} \times \type{B}}$ that formalised the fact that, given any type \type{C} and any function of type 
+%%%(\FType{A}{(\FType{B}{C})})
+%%%we can use these to create a function of type
+%%%{(\FType{\PType{A}{B}}{C})} -- i.e. a function out of the product type into \type{C}.
+%%%
+%%%Now we're defining \emph{induction}, so the end result we're looking for is a dependent type 
+%%%\PROD
+%%%{\term{x}}{\type{A} \times \type{B}}
+%%%{\type{C}(\term{x})}
+%%%that depends upon the product type.  What ingredients do we need in order to construct this?
+%%%
+%%%As we noted above, dependent types are given by functions into \TYPE, so the first thing we need is a such a function \ldots
+%%%
+%%%
+%%%\[
+%%%ind_{\type{A} \times \type{B}}:
+%%%\PROD
+%%%{\term{C}}{\type{A} \times \type{B} \to \TYPE}
+%%%{
+%%%\left(
+%%%\PROD
+%%%{\term{x}}{\type{A}}
+%%%{
+%%%\PROD
+%%%{\term{y}}{\type{B}}
+%%%{\type{C}((\term{x},\term{y}))}}
+%%%\right)
+%%%}
+%%%\to
+%%%\PROD
+%%%{\term{x}}{\type{A} \times \type{B}}
+%%%{\type{C}(\term{x})}
+%%%\]
+%%%\[
+%%%ind_{\type{A} \times \type{B}}(\type{C})(\term{g})((\term{x},\term{y})) 
+%%%\DefinedAs
+%%%\term{g}(\term{x})(\term{y})
+%%%\]
+%%%
+%%%
+%%%\subsection{Induction for Coproduct Types}
+%%
+%%%\subsection{Discussion: Recursors and Inductors}
+%%
+%%
+%%%Standardly in mathematics we draw a distinction between ``definition by recursion'' (which builds a mathematical object) and ``proof by induction'' (which constructs a mathematical proof). In our type theoretic foundation we're no longer drawing any distinction between objects and proofs -- we consider proofs to be just another kind of mathematical object.  However, conceptually this is still a useful distinction to draw, so we treat the two cases separately.
+%%%
+%%%In the previous section we saw how to define the recursor for \type{T}, which formalises the way we define functions from \type{T} to some other arbitrary type \type{C}.  We didn't say anything about what type \type{C} might be, but we never considered explicitly the case where \type{C} is \TYPE, i.e. where we're defining functions 
+%%%$\type{T} \to \TYPE$.  Let's look at that now.
+%%
+%%
+%%%are likewise applicable to the case of defining functions that map into \TYPE, i.e. functions that output propositions about their inputs. Although there is no in-principle difference between how we handle these functions and any other, we will nonetheless consider them separately.  Following the convention of the HoTT Book,  we will call these functions \terminology{inductors}.\footnote{Question: Why do we separate these two and give them separate names, when we've been emphasising all along that propositions are just another kind of mathematical object?  Answer this once we better understand induction.}
+%%
+%%%We haven't yet seen why the recursor is so-called, since we haven't seen any cases where it apears to be doing anything actually recursive.
+%%
+%%
+%%%%% End of {Discussion}
+%%
+%%
+%%\newpage
+%
+%
+%\subsubsection{Polymorphism: Quantifying over types}
+%
+%
+%
+%
+%
+
+% \subsection{Other Inductive Type Definitions}
+% \subsubsection{Lists}
+% \subsubsection{Trees}
+% \subsubsection{The `Option' or `Maybe' Type}
+
+% \subsection{Higher Inductive Type Definitions}
+% \subsubsection{The Circle}
+% \subsubsection{The Interval}
+
+% \subsection{The Ladder of $n$-types}
+% \subsubsection{Contractible types}
+% \subsubsection{Mere propositions}
+% \subsubsection{Sets}
+% \subsubsection{Groupoids}
+% \subsubsection{Upwards!}
+%
+%\subsection{Truncation}
+%\subsubsection{Mere propositions}
+%
+% \subsection{Homotopy Theory}
+%
+%
+%
+%
+%
+%
+%
+%
+%
+%
+%
+
+\end{document} 
+

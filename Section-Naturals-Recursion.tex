@@ -1,0 +1,980 @@
+\section{Recursive Types}
+\label{sec:DataTypes}
+
+\subsection{Defining a new type in a new way}
+\label{sec:NaturalNumbers-NewTypeNewWay}
+
+In Section \ref{} we introduced into the type theory two ways to form new types from old ones: the product 
+$\type{A} \x \type{B}$ and the coproduct
+$\type{A} \+ \type{B}$.
+In each case we had to specify the \emph{term constructors} for the new type, i.e. the basic functions that give terms of this type as their outputs.  The term constructor for product takes one $\term{a}:\type{A}$ and one $\term{b}:\type{B}$ and returns a pair 
+$(\term{a}, \term{b}):\type{A} \x \type{B}$.  The coproduct type has two constructors, namely $\inl: \type{A} \to \type{A} \+ \type{B}$ and  
+$\inr: \type{B} \to \type{A} \+ \type{B}$.
+
+We also introduced the finite types (Section \ref{}), whose constructors don't take any input from any other type, they just each produce a single specific term of the type (e.g. for the type \type{2} the constructors are $\term{0}_{\type{2}}:\type{2}$ and $\term{1}_{\type{2}}:\type{2}$).  We can think of these ``no-input constructors'' as (being provided by) functions into their corresponding types as well, since we can take the input type to be \type{1}, the Unit type.  Since this has only one term, $\ast:\type{1}$, any function $\term{f}: \type{1} \to \type{A}$ just picks out a single term $\term{f}(\ast):\type{A}$.  Thus any constructor, whether it depends upon inputs or just picks out a term of the type, can be given as a function into the type.\footnote{
+In a slight abuse of notation, we will use the same name for a function $\type{1} \to \type{A}$ and for the term of $\term{A}$ that it picks out.  These are of course different entities belonging to different types, but since they are effectively interchangeable no harm will come from this convenience.
+}
+
+In this section we'll introduce types that are defined \emph{recursively}.  Whereas the constructors for the types we've defined before always take their inputs from \emph{other} types, a \terminology{recursive type} 
+\type{R} has at least one constructor taking input from \type{R} itself.
+
+
+Recursive types include some of the most important used structures in computer science 
+(where they are more commonly called ``recursive data types''), such as trees and lists.  They also include a type that's very important in mathematics: the natural numbers, $\NN$.
+
+
+
+\subsection{Lists}
+
+A \terminology{list} is an ordered collection of zero or more terms of some given type \type{A} in which repetition is allowed.  For each type \type{A} there is therefore a type \emph{lists of type \type{A}}, which we call $\List{\type{A}}$.
+
+Since we allow a collection of zero elements to constitute a list, there is always a term $\Nil: \List{\type{A}}$, which we call the ``empty list''.\footnote{
+Strictly we ought to put a subscript on $\Nil$ to indicate which type it belongs to, since 
+$\Nil_{\type{A}}:\List{\type{A}}$
+is a distinct term from 
+$\Nil_{\type{B}}:\List{\type{B}}$, but for convenience we won't.
+}
+
+Since lists are ordered collections, any list that is not empty must contain a \emph{first} element, which is a term of \type{A}.  The remainder of the list is then also an ordered collection of zero or more terms of \type{A}, i.e. another list.  Thus any non-empty list in $\List{\type{A}}$ must be built from some $\term{a}:\type{A}$ and some $\term{L}:\List{\type{A}}$.
+
+This gives us our two constructors for the type $\List{\type{A}}$:
+\begin{align*}
+\Nil&: \type{1} \to \List{\type{A}}  \\
+cons&: \type{A} \x \List{\type{A}} \to \List{\type{A}}
+\end{align*}
+In computer science the second constructor is traditionally called ``$cons$'' (short for ``constructor''\footnote{
+This gives some indication of how important lists are in some programming languages!  In particular in one of the first functional programming languages \emph{Lisp}, which is short for ``LISt Processing''.
+}), and $cons(\term{a}, \term{L})$ is often written as $\term{a}::\term{L}$.  However, this ``double colon'' notation threatens to clash with our notation for terms belonging to types, so we will instead use the notation $\ListOf{\term{a}}{\term{L}}$.  We will also often use the traditional notation $\term{as}$ for a list of type $\List{\type{A}}$ (which we read as the plural of \term{a}), and likewise $\term{bs}:\List{\type{B}}$, etc.
+
+
+
+
+
+\newpage
+\subsection{Natural numbers}
+\label{sec:NaturalNumbers}
+
+The type we're defining here is, of course, the \terminology{natural numbers}, $\type{\NN}$.  We'll call the no-input term constructor 
+$\term{0}_{\type{\NN}}:\type{\NN}$.  
+The other term constructor takes a term of $\type{\NN}$ and returns a new term.  It is therefore naturally interpreted as the \terminology{successor} operation, so we call it $s$.  
+Thus the terms of $\type{\NN}$ can be written as
+\[
+\begin{cases}
+\term{0}_{\type{\NN}}:\type{\NN}
+\\
+s(\term{n}):\type{\NN}\mbox{ for some }\term{n}:\type{\NN}
+\end{cases}
+\] 
+The first few natural numbers are therefore $\term{0}_{\type{\NN}}$, 
+$s(\term{0}_{\type{\NN}})$, $s(s(\term{0}_{\type{\NN}}))$, $s(s(s(\term{0}_{\type{\NN}})))$, and so on.
+But rather than writing out numbers in this unary representation, we'll generally switch to the usual numerals, e.g. writing $3$ for $s(s(s(\term{0}_{\type{\NN}})))$.\footnote{
+Context should make it clear when we're talking about \emph{numbers}, which are terms of type \type{\NN}, rather than \emph{types} like \type{0} and \type{2}, which are not directly related to \type{\NN} at all.
+}  (Note that we won't put a subscript `\NN' on these numerals, to avoid cluttering up the notation.) 
+
+
+\subsection{Defining addition on $\type{\NN}$}
+\label{sec:NaturalNumbers-AdditionOnN}
+
+Having defined natural numbers, we want to be able to do basic arithmetic on them.  Let's first see how to define addition.
+
+The addition function will take two natural numbers and return another.  We can therefore define it by a (curried) function
+\[
+\term{add}:\NN \to (\NN \to \NN)
+\]
+where for any $\term{x}:\type{\NN}$, the function
+$\term{add}_{\term{x}}: \type{\NN} \to \type{\NN}$
+takes any $\term{m}:\type{\NN}$ and adds \term{x} to it.\footnote{
+TODO: Spell this out in more detail with a particular example.  Mention commutativity and link ahead to the worked example.
+}
+To define \term{add} we therefore need to know what function  $\term{add}_{\term{x}}:\NN \to \NN$ is  for each 
+$\term{x}:\type{\NN}$.
+
+We can immediately see that $\term{add}_{ \term{0}_{\type{\NN}}}$ is the identity function 
+$ \term{m} \mapsto \term{m}$, since adding zero to any number leaves it unchanged.  
+
+By the definition of the natural numbers given above, any other natural number aside from $\term{0}_{\type{\NN}}$
+must be of the form $s(\term{n})$ for some 
+$\term{n}:\type{\NN}$.  We can use this fact, and the fact that 
+$(1+n) + m = 1 + (n + m)$, to 
+give a \terminology{recursive} definition of addition: to add $s(\term{n})$ to some number \term{m} we first add \term{n} to it, and then take the successor of the result.  This allows us to complete the definition:
+for any $\term{n}:\type{\NN}$, 
+the function $\term{add}_{s(\term{n})}$ is defined as:
+\[
+\term{add}_{s(\term{n})}(\term{m}) \DefinedAs
+s(\term{add}_{\term{n}}(\term{m}))
+\]
+
+  The full definition of the addition function is therefore:
+\begin{align*}
+\term{add}(\term{0}_{\type{\NN}})(\term{m}) &\DefinedAs \term{m}
+\\
+\term{add}(s(\term{n}))(\term{m}) &\DefinedAs
+s(\term{add}(\term{n})(\term{m}))
+\end{align*}
+This is a \emph{recursive} definition in the sense that it gives the definition of the sum of more complex terms 
+(i.e. $s(\term{n})$ and $\term{m}$)
+via the sum of less complex ones
+(i.e.~$\term{n}$~and~$\term{m}$).\footnote{
+TODO: Explain explicitly that \term{add} mirrors the structure of $\NN$ itself, since each $add_n$ function is defined in terms of the next smaller one, down to the base case.  This is foreshadowing the general idea of structural recursion and the definition of the recursor.
+}
+
+
+
+\subsection{Pattern matching}
+\label{sec:NaturalNumbers-PatternMatching}
+
+We call this style of function definition \terminology{pattern matching}.  Let's see how it works in the present example.
+
+When we apply the \term{add} function to a pair of inputs \term{a} and \term{b}:
+\begin{enumerate}[(i)]
+\item we will compare the expression 
+$\term{add}(\term{a})(\term{b})$ against each of the patterns above; 
+\item it will match against \emph{exactly one} of those patterns -- i.e. \term{a} will be either $\term{0}_{\type{\NN}}$ or $s(\term{n})$ for some $\term{n}:\type{\NN}$;
+\item the line that matches serves as the definition of $\term{add}(\term{a})(\term{b})$ in this instance;
+\item each variable on the left side of that line takes a unique value in matching $\term{add}(\term{a})(\term{b})$;
+\item the value of $\term{add}(\term{a})(\term{b})$ is therefore given by the right side of that line, with the variables taking those same values.
+\end{enumerate}
+
+Of course, we've seen the pattern matching style of definition before, when defining things by case analysis -- for example on coproducts, or on the type \type{2}.  
+For definitions on \type{2} the pattern matching is trivial, since the only part of the pattern that varies from one case to another is whether we're dealing with $\term{0}_{\type{2}}$ or $\term{1}_{\type{2}}$.  
+Pattern matching for coproducts is slightly more sophisticated -- a term of the coproduct $\type{A} \+ \type{B}$ is either of the form $\inl(\term{a})$ for some $\term{a}:\type{A}$ or of the form $\inr(\term{b})$ for some $\term{b}:\type{B}$, so we not only have to match against which of these two options we have, but then also match a variable to the given \term{a} or \term{b}, as in step (iv) above.
+
+For natural numbers, pattern matching is just slightly more sophisticated again.  Now the options are $\term{0}_{\type{\NN}}$ or $s(\term{n})$ for some $\term{n}:\type{\NN}$, so first we have to match against which of these two options we have, and then \emph{if} we have $s(\term{n})$ we have to match a variable to the value \term{n}.
+
+In general, definitions given in pattern matching style can be much more complicated than this, with many more than just two patterns to choose between, and more than just one or two variables to match against.  However, in practice, actually using a pattern matching style definition is easy, since we just have to compare the input we're given to each line of the pattern in turn, and confirm whether we have the right number of pieces, each of the right type, as specified by that line.
+
+
+
+
+
+\subsection{An example of addition}
+\label{sec:NaturalNumbers-ExampleAddition}
+
+To make sure we understand it, let's do a simple example in full tedious detail: let's add $2$ and $3$.  %We'll write the numbers as $s(s(\term{0}_{\type{\NN}}))$ and $s(s(s(\term{0}_{\type{\NN}})))$, to make everything explicit.
+
+To evaluate
+$\term{add}(2)(3)$ we pattern match against each line of the definition of \term{add}.  $2$ is of the form $s(\term{n})$ for some $\term{n}:\type{\NN}$, so we match the second line, with \term{n} taking the value $1$ and \term{m} taking the value $3$.  The value of $\term{add}(2)(3)$ is therefore 
+$s(\term{add}(1)(3))$, and so we need to evaluate $\term{add}(1)(3)$.
+
+To evaluate
+$\term{add}(1)(3)$ we pattern match against each line of the definition of \term{add}.  $1$ is of the form $s(\term{n})$ for some $\term{n}:\type{\NN}$, so we match the second line, with \term{n} taking the value $\term{0}_{\type{\NN}}$ and \term{m} taking the value $3$.  The value of our original function application $\term{add}(2)(3)$ is therefore 
+$s(s(\term{add}(\term{0}_{\type{\NN}})(3)))$, and so we need to evaluate $\term{add}(\term{0}_{\type{\NN}})(3)$.
+
+To evaluate
+$\term{add}(\term{0}_{\type{\NN}})(3)$ we pattern match against each line of the definition of \term{add}, and we find a match at the first line with \term{m} taking the value $3$.  Thus $\term{add}(\term{0}_{\type{\NN}})(3)$ evaluates to $3$.
+
+The value of our original function application $\term{add}(2)(3)$ is therefore $s(s(3))$ -- or, in full, 
+$s(s(s(s(s(\term{0}_{\type{\NN}})))))$, 
+which is a term of \type{\NN}, and so the evaluation is complete.
+
+As is easily confirmed, if we had instead evaluated $\term{add}(3)(2)$ we would have gone through a different sequence of steps but would have ended up with the same term $s(s(s(s(s(\term{0}_{\type{\NN}})))))$ of $\type{\NN}$.\footnote{We will later be able to prove that addition is commutative -- i.e. that $\term{add}(\term{a})(\term{b})$ equals $\term{add}(\term{b})(\term{a})$ for all $\term{a}:\type{\NN}$ and $\term{b}:\type{\NN}$.  However, we don't yet have all the resources we need to express this, since we currently have no way to say that two terms of a type are the same (i.e. in this case, the same number).  Once we've introduced this new feature to our language in Section~\ref{} we'll return to investigate equations and proofs in arithmetic.
+}
+ 
+
+\subsection{Defining multiplication and exponentiation}
+\label{sec:NaturalNumbers-MultiplicationExponentiation}
+
+We have defined addition of natural numbers as repeated succession:
+\begin{align*}
+\term{add}(\term{0}_{\type{\NN}})(\term{m}) &\DefinedAs \term{m}
+\\
+\term{add}(s(\term{n}))(\term{m}) &\DefinedAs
+s(\term{add}(\term{n})(\term{m}))
+\end{align*}
+
+We can use a similar pattern to define multiplication as repeated addition:
+\begin{align*}
+\term{mult}(\term{0}_{\type{\NN}})(\term{m}) &\DefinedAs \term{0}_{\type{\NN}}
+\\
+\term{mult}(s(\term{n}))(\term{m}) &\DefinedAs
+\term{add}(\term{m})(\term{mult}(\term{n})(\term{m}))
+\end{align*}
+The first line just says that the product of zero with ny number is zero.  The second line says that $(1+n) \times m = m + (n \times m)$.  Since, as before, any natural number is either $\term{0}_{\type{\NN}}$ or $s(\term{n})$ for some $\term{n}:\type{\NN}$, these two cases are exhaustive and exclusive.  Again we can see by inspection that the call to \term{mult} on the right side of the second line takes a smaller argument than the one we're evaluating, so this will eventually hit the base case and terminate.  Then we're left with a sequence of additions to evaluate, and we've already seen that addition is well defined.  Thus the multiplication function is also well defined.
+
+Let's look at a simple example -- but in much less detail than the example we did for addition!  To evaluate 
+$\term{mult}(\term{3})(\term{4})$
+we pattern match against the above definition, and we find a match with the second line, with \term{n} taking the value $2$ and \term{m} taking the value $4$.  Thus we need to evaluate
+$\term{add}(\term{4})(\term{mult}(\term{2})(\term{4}))$.  To do this we evaluate 
+$\term{mult}(\term{2})(\term{4})$, which in turn requires us to evaluate
+$\term{mult}(\term{1})(\term{4})$, which finally requires us to evaluate
+$\term{mult}(\term{0}_{\type{\NN}})(\term{4})$.  We therefore end up with the sequence of additions, adding three $4$s to $\term{0}_{\type{\NN}}$, which evaluates to $12$, as expected.
+
+Note that, in both addition and multiplication, the recursive part (i.e. the line in which the input is of the form $s(\term{n})$)
+involves the evaluation of the same function on a smaller input (respectively, 
+$\term{add}(\term{n})(\term{m})$
+and 
+$\term{mult}(\term{n})(\term{m})$), 
+the result of which is then acted upon by another function
+(respectively,
+$s$ and 
+$\term{add}(\term{m})$).
+
+Having defined addition as repeated succession and multiplication as repeated addition, we can go on to define the function we get by repeated multiplication, namely exponentiation.  We will define 
+$\term{exp}(\term{n})(\term{m})$ as $m^n$, so that we can use the same pattern as above.  We use the fact that $m^0 = 1$ and $m^{(1+n)} = m \times m^n$:
+\begin{align*}
+\term{exp}(\term{0}_{\type{\NN}})(\term{m}) &\DefinedAs 1
+\\
+\term{exp}(s(\term{n}))(\term{m}) &\DefinedAs
+\term{mult}(\term{m})(\term{exp}(\term{n})(\term{m}))
+\end{align*}
+Again, the recursive line here involves a call to \term{exp} with a smaller input, followed by the application of another well-defined function $\term{mult}(\term{m})$.
+
+
+\subsection{Some other simple functions}
+\label{sec:NaturalNumbers-OtherFunctions}
+
+Let's quickly review some other functions on the natural numbers that we can easily define.
+\begin{description}
+\item[Double] We use the facts that $2\times 0 = 0$ and $2\times (n+1) = 1+1+(2\times n)$
+\begin{align*}
+\term{double}(\term{0}_{\type{\NN}}) 
+&\DefinedAs 
+\term{0}_{\type{\NN}}
+\\
+\term{double}(s(\term{n})) 
+&\DefinedAs
+s(s(\term{double}(\term{n})))
+\end{align*}
+%
+\item[Factorial]  $0! = 1$; $(n+1)! = (n+1) \times n!$
+\begin{align*}
+\term{fact}(\term{0}_{\type{\NN}}) 
+&\DefinedAs 
+1\\
+\term{fact}(s(\term{n})) 
+&\DefinedAs
+\term{mult}(s(\term{n}))(\term{fact}(\term{n}))
+\end{align*}
+%
+\item[Triangular] The $n^{\mbox{th}}$ triangular number, $1+2+3+ \ldots +n$
+\begin{align*}
+\term{sum-to}(\term{0}_{\type{\NN}}) 
+&\DefinedAs 
+\term{0}_{\type{\NN}}
+\\
+\term{sum-to}(s(\term{n})) 
+&\DefinedAs
+\term{add}(s(\term{n}))(\term{sum-to}(\term{n}))
+\end{align*}
+%
+
+
+
+\item[Limited predecessor]  We're working on $\NN$, so we must define $\term{pre}(\term{0}_{\type{\NN}})  = \term{0}_{\type{\NN}}$.
+ \begin{align*}
+\term{pre}(\term{0}_{\type{\NN}}) 
+&\DefinedAs 
+\term{0}_{\type{\NN}}
+\\
+\term{pre}(s(\term{n})) 
+&\DefinedAs
+\term{n}
+\end{align*}
+%
+\item[Limited subtraction]  $\term{sub}(\term{a})(\term{b})$ is $b-a$, or $\term{0}_{\type{\NN}}$ if $a > b$.
+ \begin{align*}
+\term{sub}(\term{0}_{\type{\NN}})(\term{m}) &\DefinedAs 
+\term{m}
+\\
+\term{sub}(s(\term{n}))(\term{m}) &\DefinedAs
+\term{pre}(\term{sub}(\term{n})(\term{m}))
+\end{align*}
+\end{description}
+(For ease of reading we'll usually write $\term{b} - \term{a}$ instead of $\term{sub}(\term{a})(\term{b})$.)
+
+
+\subsection{``Predicates'' on natural numbers}
+\label{sec:NaturalNumbers-PredicatesOnN}
+
+In Section~\ref{} we saw how to define predicates using dependent types.\footnote{
+Recall that a predicate on \type{A} is a function $\term{P}: \type{A} \to \TYPE$ such that for each $\term{a}:\type{A}$ the type $\term{P}(\term{a})$ corresponds to the proposition that the corresponding property holds of \term{a}.  Truth of this proposition corresponds to the existence of a witness 
+$\term{p}^{\term{a}}:\term{P}(\term{a})$
+}
+However, when we're working with the natural numbers we can \emph{simulate} predicates without invoking such complicated technology.
+Specifically, we can define functions that evaluate to $1:\type{\NN}$ if their input has some particular property and $\term{0}_{\type{\NN}}:\type{\NN}$ if it does not.\footnote{
+In a slight overloading of terminology we will also call these functions ``predicates''.  Context should make it entirely clear whether we mean a function whose output is \type{\NN} or a function whose output is \TYPE; in the current discussion we will always mean the former.
+}  
+We can then use these functions in defining other functions -- for example, when we want a function to take one action if a property holds but a different action if it does not (see Section~\ref{} below).  We can also define the basic boolean operations on $\term{0}_{\type{\NN}}$ and $1$ in the obvious way.  Predicates therefore greatly extend the expressive power of functions defined just over the natural numbers.  
+
+Let's see a couple of examples of predicates.  (In the definitions to follow we will use the naming convention that the names of predicates always end in a question mark.)
+%
+\begin{description}
+\item[pos?]  The predicate ``Is the input positive, i.e. strictly greater than zero?''
+ \begin{align*}
+\term{pos?}(\term{0}_{\type{\NN}}) &\DefinedAs 
+\term{0}_{\type{\NN}}
+\\
+\term{pos?}(s(\term{n})) &\DefinedAs
+1
+\end{align*}
+%
+\item[even?]  The predicate ``Is the input an even number?''
+\begin{align*}
+\term{even?}(\term{0}_{\type{\NN}}) &\DefinedAs 
+1
+\\
+\term{even?}(1) &\DefinedAs 
+\term{0}_{\type{\NN}}
+\\
+\term{even?}(s(s(\term{n}))) &\DefinedAs
+\term{even?}(\term{n})
+\end{align*}
+
+\end{description}
+%
+%
+The functions we have defined so far have all either taken just a single input or, if they take two inputs, have used the second unchanged.  But we can define functions of two inputs whose definition depends also on the form of the second input -- i.e. functions that act differently if their second input is $\term{0}_{\type{\NN}}$ rather than $s(\term{m})$ for some $\term{m}:\type{\NN}$.  For example:
+\begin{description}
+\item[Strictly greater]  $\term{gt?}(\term{a})(\term{b})$ is $1$ if $a>b$, or $\term{0}_{\type{\NN}}$ otherwise.
+ \begin{align*}
+\term{gt?}
+(\term{0}_{\type{\NN}})
+(\term{0}_{\type{\NN}})
+&\DefinedAs 
+\term{0}_{\type{\NN}}
+\\
+\term{gt?}(\term{0}_{\type{\NN}})(s(\term{m})) 
+&\DefinedAs 
+\term{0}_{\type{\NN}}
+\\
+\term{gt?}(s(\term{n}))(\term{0}_{\type{\NN}}) &\DefinedAs
+1
+\\
+\term{gt?}(s(\term{n}))(s(\term{m})) &\DefinedAs
+\term{gt?}(\term{n})(\term{m})
+\end{align*}
+\end{description}
+%
+By just changing the first line we can modify this to $\term{geq?}(\term{a})(\term{b})$:
+\begin{description}
+\item[Greater or equal]  $\term{geq?}(\term{a})(\term{b})$ is $1$ if $a \geq b$, or $\term{0}_{\type{\NN}}$ otherwise:
+ \begin{align*}
+\term{geq?}
+(\term{0}_{\type{\NN}})
+(\term{0}_{\type{\NN}})
+&\DefinedAs 
+1
+\\
+\term{geq?}(\term{0}_{\type{\NN}})(s(\term{m})) 
+&\DefinedAs 
+\term{0}_{\type{\NN}}
+\\
+\term{geq?}(s(\term{n}))(\term{0}_{\type{\NN}}) &\DefinedAs
+1
+\\
+\term{geq?}(s(\term{n}))(s(\term{m})) &\DefinedAs
+\term{geq?}(\term{n})(\term{m})
+\end{align*}
+\end{description}
+%
+Whereas to negate \term{gt?} and produce \term{leq?} we just invert all the base case values:
+\begin{description}
+\item[Less or equal]  $\term{leq?}(\term{a})(\term{b})$ is $1$ if $a \leq b$, or $\term{0}_{\type{\NN}}$ otherwise.
+ \begin{align*}
+\term{leq?}
+(\term{0}_{\type{\NN}})
+(\term{0}_{\type{\NN}})
+&\DefinedAs 
+1
+\\
+\term{leq?}(\term{0}_{\type{\NN}})(s(\term{m})) 
+&\DefinedAs 
+1
+\\
+\term{leq?}(s(\term{n}))(\term{0}_{\type{\NN}}) &\DefinedAs
+\term{0}_{\type{\NN}}
+\\
+\term{leq?}(s(\term{n}))(s(\term{m})) &\DefinedAs
+\term{leq?}(\term{n})(\term{m})
+\end{align*}
+\end{description}
+%
+For completeness, let's give the definition of \term{lt?}:
+\begin{description}
+\item[Strictly less]  $\term{lt?}(\term{a})(\term{b})$ is $1$ if $a < b$, or $\term{0}_{\type{\NN}}$ otherwise.
+ \begin{align*}
+\term{lt?}
+(\term{0}_{\type{\NN}})
+(\term{0}_{\type{\NN}})
+&\DefinedAs 
+\term{0}_{\type{\NN}}
+\\
+\term{lt?}(\term{0}_{\type{\NN}})(s(\term{m})) 
+&\DefinedAs 
+1
+\\
+\term{lt?}(s(\term{n}))(\term{0}_{\type{\NN}}) &\DefinedAs
+\term{0}_{\type{\NN}}
+\\
+\term{lt?}(s(\term{n}))(s(\term{m})) &\DefinedAs
+\term{lt?}(\term{n})(\term{m})
+\end{align*}
+\end{description}
+
+(For ease of reading we'll generally write these as
+$\term{a} > \term{b}$, 
+$\term{a} \geq \term{b}$, 
+$\term{a} \leq \term{b}$, and 
+$\term{a} < \term{b}$.)
+
+
+We can similarly write a function on natural numbers that returns 1 just when its two inputs are equal:
+%
+\begin{description}
+\item[Equality] $\term{eq?}(\term{a})(\term{b})$ is $1$ if $a=b$ and $\term{0}_{\type{\NN}}$ otherwise.
+\begin{align*}
+\term{eq?}(\term{0}_{\type{\NN}})(\term{0}_{\type{\NN}}) &\DefinedAs 
+1
+\\
+\term{eq?}(\term{0}_{\type{\NN}})(s(\term{m})) &\DefinedAs 
+\term{0}_{\type{\NN}}
+\\
+\term{eq?}(s(\term{n}))(\term{0}_{\type{\NN}}) &\DefinedAs
+\term{0}_{\type{\NN}}
+\\
+\term{eq?}(s(\term{n}))(s(\term{m})) &\DefinedAs
+\term{eq?}(\term{n})(\term{m})
+\end{align*}
+\end{description}
+(We \emph{won't} write this as ``$\term{a} = \term{b}$'', since we want to reserve the `$=$' sign for other purposes later.)
+
+
+%A function whose action depends upon both inputs in this way doesn't have to be a predicate, of course -- we can define the base cases to be anything we want, not just $\term{0}_{\type{\NN}}$ and $1$.  Likewise, the recursive call doesn't have to be restricted to just the case where the inputs are both successors.  We can make the four lines of the definition as complicated as we like, as long as we satisfy certain restrictions, to be discussed below.
+
+
+%\newpage
+\subsection{Partial application and Branching functions}
+
+In the previous section we talked about ``functions of two inputs'', but sometimes it's useful to consider these instead as curried functions, i.e. functions that take a single input and return another function as output.  We can therefore take a function that we initially thought of as a multi-input function, consider it as a curried function, and then feed in just a single input.  If we started with a function of $k$ arguments, we end up with a function of $k-1$ arguments.  We call this process \terminology{partial application}.
+
+We can use this to get interesting and useful one-argument functions from some of the two-argument functions we defined above.  For example, partial application of \term{mult} gives us an alternative way to define the \term{double} function from Section~\ref{}:
+\[
+\term{double}	=	\term{mult}(2)
+\]
+Similarly, we can define:\footnote{
+Exercise: We can also give an alternative definition of \term{pos?} by partial application.  In fact we can do it in at least two different ways.  Which two-argument functions return \term{pos?} when we apply them to a suitable first argument?
+}
+\begin{align*}
+\term{squared}	&=	\term{exp}(2)
+\\
+\term{under5?}	&=	\term{gt?}(5)
+\end{align*}
+
+Another way we can use partial application is to define \emph{branching} functions.  A function \term{f} that takes two natural number inputs can be thought of as a family of single-input functions, $\term{f}_{0}$, $\term{f}_{1}$, $\term{f}_{2}$ etc., with the first input to \term{f} just thought of as an index \term{i} that picks out which $\term{f}_{\term{i}}$ to apply.  That is, $\term{f}(\term{i})(\term{m}) = \term{f}_{\term{i}}(\term{m})$.  (This isn't changing anything about the definition of any function, just our attitude on how to think about them.)
+
+Now, let's say we have two functions $\term{f}_{0}$ and $\term{f}_{1}$, both of type $\type{\NN} \to \type{\NN}$, and we want to 
+define a function that applies $\term{f}_{e}$ to its input only if that input is even, and $\term{f}_{o}$ if its input is odd.  How can we do this?
+
+If we define a ``helper function'' \term{g} of two inputs such that
+\begin{align*}
+\term{g}(\term{0}_{\type{\NN}})(\term{m})
+&\DefinedAs
+\term{f}_{o}(\term{m})
+\\
+\term{g}(s(\term{n}))(\term{m})
+&\DefinedAs
+\term{f}_{e}(\term{m})
+\end{align*}
+then we can define 
+\[
+\term{f}(\term{m})
+\DefinedAs
+\term{g}
+(\term{even?}(\term{m}))
+(\term{m})
+\]
+which does exactly what we want: 
+if \term{m} is even then 
+$\term{even?}(\term{m})$ will evaluate to $1$ and 
+$\term{f}(\term{m})$ evaluates to $\term{f}_{e}(\term{m})$; 
+whereas 
+if \term{m} is odd then 
+$\term{even?}(\term{m})$ will evaluate to $\term{0}_{\type{\NN}}$ and 
+$\term{f}(\term{m})$ evaluates to $\term{f}_{o}(\term{m})$.
+
+We can use this same technique, using predicates and helper functions, to define any kind of branching function:
+\[
+\term{g}(\term{m}) \DefinedAs
+\begin{cases}
+\term{f}_{1}(\term{m}) \quad \mbox{if } \term{m}\mbox{ has property }\phi
+\\
+\term{f}_{0}(\term{m}) \quad \mbox{if } \term{m}\mbox{ does not have property }\phi
+\end{cases}
+\]
+for any well-defined functions $\term{f}_{0}$ and $\term{f}_{1}$ and any property $\phi$ for which we can define a predicate.  This gives us an implementation of the common \emph{if \ldots then \ldots else \ldots} branching structure that's used in most programming languages.
+
+
+\subsection{Examples of branching functions}
+
+We can of course extend the above idea to functions and predicates of multiple arguments, and moreover we can \emph{nest} predicates to have multiple conditions evaluated as once.  We can therefore write the modulo function 
+$\term{mod}
+(\term{a})
+(\term{b})$
+(which returns the remainder when \term{b} is divided by \term{a}, usually written as `$b \mbox{ mod } a$') as follows:
+\[
+\term{mod}
+(\term{k})
+(\term{m}) 
+\DefinedAs
+\begin{cases}
+\term{0}_{\type{\NN}}
+	&\mbox{if } \term{eq?}(\term{k})(\term{0}_{\type{\NN}})
+\\
+\term{m} 
+	&\mbox{if } \term{k} > \term{m}
+\\
+\term{mod}
+(\term{k})
+(\term{m} - \term{k} )
+	&\mbox{otherwise}
+\end{cases}
+\]
+(Using this function we could have defined $\term{even?}$ as $\term{mod}(2)$.)
+
+%We can then use \term{mod} to define other functions, such as \term{gcd}, which returns the greatest common divisor of its two inputs:
+%\begin{align*}
+%\term{gcd}(\term{0}_{\type{\NN}})(\term{a})
+%&\DefinedAs
+%\term{a}
+%\\
+%\term{gcd}(\term{b})(\term{a})
+%&\DefinedAs
+%\term{gcd}
+%(\term{mod}(\term{b})(\term{a}))
+%(\term{b})	
+%\quad \mbox{ for } \term{b} > \term{0}_{\type{\NN}}
+%\end{align*} 
+
+
+
+We can also define an integer division function 
+%that we mentioned in Section~\ref{}, 
+which takes inputs $a$ and $b$ and returns the greatest integer below $b/a$, as:\footnote{
+Strictly speaking, we can't give the proper definition of integer division yet, because it's not a \terminology{total function} 
+$\type{\NN} \to (\type{\NN} \to \type{\NN})$.  Division by zero ought to be undefined, resulting in an error, or else should evaluate to \emph{infinity} (which is not a term of \type{\NN}).  To solve this, we could try to define a new type that represents $\type{\NN}^{+}$, the extended natural numbers which include infinity, and have $\term{div}
+(\term{0}_{\type{\NN}})
+(\term{m})$ evaluate to infinity.  In order to use integer division in the definition of other functions we would have to extend all our existing definitions to account for this extra term.
+
+Alternatively, we can introduce a more general \emph{error handling} system, borrowed from functional programming languages such as Haskell and ML.  This in effect gives a way of adding an extra term to any type to represent ``error'' values (such as attempting to divide by zero) and then automatically takes care of dealing with the possibility of error values being passed in as inputs when we compose functions together.  This system (modelled on the ``Maybe monad'' in Haskell or the ``Option type'' in ML) will be introduced in Section~\ref{}.
+
+For now, we'll set this problem aside and just choose some value for division by zero to evaluate to: in particular, we'll choose $\term{0}_{\type{\NN}}$.  We should bear this in mind, then, and be careful when using integer division in other function definitions.
+}
+\[
+\term{div}
+(\term{k})
+(\term{m}) 
+\DefinedAs
+\begin{cases}
+\term{0}_{\type{\NN}}
+	&\mbox{if } \term{eq?}(\term{k})(\term{0}_{\type{\NN}})
+\\
+\term{0}_{\type{\NN}}
+	&\mbox{if } \term{k} > \term{m}
+\\
+s(\term{mod}
+(\term{k})
+(\term{m} - \term{k} ))
+	&\mbox{otherwise}
+\end{cases}
+\]
+%
+So, for example:
+\[
+\term{div}(5)(17) = 
+s(\term{div}(5)(12)) = 
+s(s(\term{div}(5)(7))) = 
+s(s(s(\term{div}(5)(2)))) = 
+s(s(s(\term{0}_{\type{\NN}})))
+\]
+Choosing this ordering of the inputs means that we can define functions like 
+\begin{align*}
+\term{half}  &= \term{div}(2) \\
+\term{third} &= \term{div}(3)
+\end{align*}
+
+
+
+\newpage
+
+
+
+
+
+\section{Recursive Function Definitions}
+\subsection{Pitfalls of pattern matching}
+\label{sec:NaturalNumbers-PitfallsPatternMatching}
+
+In complicated definitions it can be a complex task to ensure that the set of patterns are both \terminology{exhaustive} and \terminology{exclusive} -- i.e. to ensure that every possible input we could give to the function will match \emph{exactly one} pattern, so that the definition of the function for that input is unambiguously defined.
+
+However, while this is a necessary criterion, it is not sufficient for our pattern matching style definition to result in a well-specified function.  As well as ensuring that it is unambiguous what the definition of the function for each input is, we must also ensure that each line of the definition is guaranteed to (eventually) result in a value of the function's output type.  In simple cases such as $\term{eq?}(\term{0}_{\type{\NN}})(\term{0}_{\type{\NN}})$ or $\term{add}(\term{0}_{\type{\NN}})(\term{m})$, where the output is just a particular named term (respectively, $\term{0}_{\type{\NN}}$ and \term{m} in these two examples) this isn't a problem.  But when we allow \emph{recursive} function definitions we have more work to do to ensure that any recursive call always results in a term (rather than an endless sequence of further recursive calls).  In summary: the output for each line of the function definition must result in a \terminology{terminating computation}.
+
+For example, in the definition of addition given above the evaluation of $\term{add}(s(\term{n}))(\term{m})$ requires us to evaluate \term{add} on some other inputs.
+But this recursive call is OK, since now we're adding \term{n} and \term{m} whereas before we were adding $s(\term{n})$ and \term{m}.  We can see that repeated iterations of this recursion will, at each step, involve smaller and smaller values of the first argument, until eventually we hit the ``base case'' of adding $\term{0}_{\type{\NN}}$ to \term{m} which we can evaluate to a term immediately.  So any evaluation of $\term{add}$ wil eventually terminate (i.e result in an output term).
+
+On the other hand, what if we tried to define a function as follows:
+\begin{align*}
+\term{rocket}(\term{0}_{\type{\NN}}) &\DefinedAs \term{0}_{\type{\NN}}
+\\
+\term{rocket}(s(\term{n})) &\DefinedAs
+\term{rocket}(s(s(\term{n})))
+\end{align*}
+To evaluate $\term{rocket}(s(\term{n}))$ we need to evaluate 
+$\term{rocket}(s(s(\term{n})))$, which in turn means we have to evaluate
+$\term{rocket}(s(s(s(\term{n}))))$, and so on.  It's clear that this recursion will never terminate, since the argument keeps getting bigger and bigger with each step (and there is no other larger base case that we will eventually reach to output a term).  Thus the evaluation of $\term{rocket}(s(\term{n}))$ never results in a term of $\type{\NN}$, and so \term{rocket} is not a well defined function.\footnote{
+Specifically, it is not a \terminology{total} function -- it does not have a defined output of it output type for every input of its input type.  We require all functions to be total in order to consider them well-defined.
+}
+We will call something like \term{rocket} -- which results from something looking superficially like a function definition but which has evaluations that do not terminate -- a ``pseudo-function''.
+
+It is clear that $\term{rocket}$ has non-terminating evaluations, but in other cases it may be much more difficult to determine this by inspection.  For example, a sufficiently complex pseudo-function's evaluation may terminate for most inputs, but have a specific subset of inputs on which it fails to terminate.  For a trivial example of this, we could define a pseudo-function \term{g} 
+whose evaluation terminates on all inputs except $\term{0}_{\type{\NN}}$, as follows:
+\begin{align*}
+\term{g}(\term{0}_{\type{\NN}}) &\DefinedAs \term{rocket}(s(\term{0}_{\type{\NN}}))
+\\
+\term{g}(s(\term{n})) &\DefinedAs
+\term{n}
+\end{align*}
+%
+For a more troubling example, consider the following definition:
+\begin{align*}
+\term{k}(\term{0}_{\type{\NN}}) &\DefinedAs 
+1
+\\
+\term{k}(1) &\DefinedAs 
+1
+\\
+\term{k}(\term{n}) &\DefinedAs 
+\term{k}(\term{coll}(\term{n}))	\quad \mbox{for } \term{n} > 1
+\end{align*}
+where $\term{coll}:\type{\NN} \to \type{\NN}$ is defined as
+\[
+\term{coll}(\term{n}) \DefinedAs 
+\begin{cases}
+\term{half}(\term{n}) & \mbox{ if } \term{n} \mbox{ is even }
+\\
+s(\term{mult}(3)(\term{n})) & \mbox{ if } \term{n} \mbox{ is odd }
+\end{cases}
+\]
+\term{coll} is clearly a well-defined function,  But \term{k}, which uses \term{coll} in its recursive call, is another matter.  If we try a few example inputs we find that evaluation of \term{k} on them does indeed terminate.  For example:
+\[
+\term{k}(5) 
+= \term{k}(16)
+= \term{k}(8)
+= \term{k}(4)
+= \term{k}(2)
+= \term{k}(1)
+= 1
+\]  
+However, since the only base cases of \term{k} are $\term{0}_{\type{\NN}}$ and $1$ (and since \term{coll} can never output $\term{0}_{\type{\NN}}$) then evaluation of \term{k} can only terminate for a given input \term{n} if iterated evaluation of \term{coll} eventually reaches $1$ for that input \term{n}.  The assertion that this happens for \emph{all} values of \term{n} is the (as yet unproved) \emph{Collatz conjecture}, first formulated in 1937.  So we can give pattern matching style definitions for which it is \emph{extremely hard} to determine whether they result in well-defined functions!\footnote{
+Moreover, (according to Wikipedia) ``In 2007, researchers Kurtz and Simon, building on earlier work by J.H. Conway in the 1970s, proved that a natural generalization of the Collatz problem is algorithmically undecidable.''  So if we adapted one of these generalised versions into a pattern matching style definition as above, we may end up with something for which it is \emph{undecidable} whether it constitutes the definition of a function!
+}
+
+
+\subsection{Larger and smaller inputs}
+
+We clearly cannot rest upon ``it is obvious by inspection'' as our criterion for whether a function is well defined (and of course even if we could, we wouldn't want to, since we're trying to give an entirely formal foundation for mathematics).  To avoid these issues we must therefore introduce strict criteria on admissible function definitions to ensure that our recursively defined functions always terminate (i.e.~always result in a determinate output term) for every input.
+
+One way we might diagnose the problem with the functions discussed in the previous section is that their recursive calls sometimes involved \emph{larger} inputs.  Evaluation of \term{rocket} on any input except $\term{0}_{\type{\NN}}$ involves evaluating it on the next larger input, and since there is always a larger natural number this sequence of evaluations never ends.  With \term{k} (and obvious generalisations of it) the situation is more subtle, since sometimes evaluation moves to a smaller input but other times we must evaluate on a larger input.  Since the only base case here is $1$, termination requires that, in the long run, we do more overall decreasing than increasing, wherever we start, and that can be extremely hard to prove.
+
+But more generally the problem does not always come down to the \emph{size} of the inputs: we can define functions whose recursive calls \emph{never} involve smaller inputs, but which nonetheless \emph{always} terminate.  For example, it's possible to define, using the functions we've defined above, the predicate \term{prime?} which returns $1$ if its input is a prime number and $\term{0}_{\type{\NN}}$ otherwise.\footnote{
+A simple way to do this: $\term{prime?}(s(\term{n})) \DefinedAs \term{h}(s(\term{n}))(\term{n})$, where \term{h} is a helper function:
+\[
+\term{h}(\term{m})(\term{k}) \DefinedAs
+\begin{cases}
+1	& \mbox{if } k= \term{0}_{\type{\NN}} \mbox{ or } 1
+\\
+\term{0}_{\type{\NN}} & \mbox{if } \term{mod}(\term{k})(\term{m}) = \term{0}_{\type{\NN}}
+\\
+\term{h}(\term{m})(\term{k} - 1)	& \mbox{otherwise}
+\end{cases}
+\]
+}  
+Using this, we can define 
+\begin{align*}
+\term{nextprime}(\term{n}) \DefinedAs 
+\begin{cases}
+\term{n} 		&\mbox{if } \term{n} \mbox{ is prime}
+\\
+\term{nextprime}(s(\term{n})) 	&\mbox{otherwise}
+\end{cases}
+\end{align*}
+This outputs the next prime number larger than or equal to its input.  Since there is no largest prime, this recursion will always eventually hit a prime number, and so is guaranteed to terminate whatever \term{n} we begin at.  
+
+So it seems that any solution to the termination problem that works by restricting us only to recursive calls on smaller inputs would be overly restrictive, since it would appear to rule out perfectly good terminating functions like \term{nextprime}.  But nonetheless let's investigate this approach first to see what it allows us to do.
+
+
+
+\newpage
+\subsection{Enforcing smaller inputs}
+
+One straightforward way to ensure that we never have the problem of runaway arguments getting boundlessly bigger and bigger in our recursive calls is simply to require that in a definition of $\term{f}(s(\term{n}))$
+the argument to the recursive call must be smaller than $s(\term{n})$.
+There are two ways we could try to enforce this.  
+
+The first is to require a \emph{proof} that the recursive argument is always smaller than the original argument.  For example, if we define a function that uses a recursive call of the form
+\[
+\term{f}(s(\term{n})) \DefinedAs
+\term{f}(\term{half}(\term{n}))
+\]
+then we would require that a proof that  
+$\term{half}(\term{n})$ is always smaller than $s(\term{n})$.  
+
+To use this rule we would need to define a way to express numerical inequalities in the language of our type theory.  How can we do this?
+We might first think of appealing to the function \term{lt?} defined in Section~\ref{sec:NaturalNumbers-PredicatesOnN}.  For example, if we feed $3$ and $7$ into that function as inputs, we find that
+$\term{lt?}(3)(7)$ evaluates to $1$ as expected.  But this is not a \emph{proposition} being witnessed as true, it's just a function returning a numerical value.  We chose to use $1$ and $\term{0}_{\type{\NN}}$ to stand for ``true'' and ``false'' in our encoding, but that's just an interpretation we have chosen to give to these two numbers in this particular context.  We could just as well have chosen any other two numbers, or two sets of numbers (e.g. even vs. odd), or $1$ and $\term{0}_{\type{\NN}}$ with the \emph{opposite} interpretation -- there's no inherent meaning in that particular encoding.  Thus $\term{lt?}(3)(7)$ evaluating to $1$ cannot serve as a witness to the truth of $3 < 7$ in the way we require.  
+An inequality such as $3 < 7$ is a \emph{proposition}, so it must correspond to a type; the proof we require must be a term of this type.
+
+So what could be a witness to $3 < 7$?  What exactly do we \emph{mean} by $3 < 7$?
+One obvious candidate witness to the fact that $3$ is smaller than $7$ is that we can add another positive number (namely $4$) to $3$ to get $7$.  So we could say that a witness to $3 < 7$ is a pair consisting of the number $4$ and a proof that $\term{add}(3)(4)$ is equal to $7$.  But again, this equality statement cannot just be an instance of the $\term{eq?}$ function evaluating to $1$, it must be a proposition as well.  
+
+So now we need a type that corresponds to the proposition that $\term{add}(3)(4)$ is equal to $7$ -- but we don't have any way of defining such a type yet.  In Section~\ref{} we will introduce \emph{identity types} that express exactly this idea: for any two terms of a type, the identity type corresponds to the proposition that those terms are equal.  But until we have introduced this into our language, we cannot express numerical equalities and inequalities, and so we cannot provide proofs that one function argument is smaller than another.  We need a different way of enforcing that recursive calls are only applied to smaller inputs.
+
+
+\subsection{Simple Recursion}
+
+There is another obvious way of enforcing that the recursive call in the definition of $\term{f}(s(\term{n}))$ uses an argument smaller than $s(\term{n})$: we simply require that it can take only $\term{n}$ itself as an argument.  We call this constraint \terminology{Simple Recursion}, and we say that functions defined in this way are \terminology{simple recursive} functions.\footnote{
+This is not, as far as we're aware, standard terminology.  However, as we'll see later, the more usual terminology -- ``primitive recursion'', as used in the HoTT Book (pp. 37--38) -- is not appropriate for the functions we're defining.  We therefore thought a new name was called for to avoid confusion.
+}
+
+A simple recursive function takes a natural number as input and returns an output of some type \type{C}.  This output type may be \type{\NN} itself, or it may be a more complex type such as a function type involving \type{\NN}.  Since the input is a natural number, we have two possibilities to cover: the case where the input is $\term{0}_{\type{\NN}}$ and the case where it is a successor $s(\term{n})$.  To define a simple recursive function \term{f}, then, we first need to specify the value $\term{f}(\term{0}_{\type{\NN}}):\type{C}$.  But then what do we do about the recursive call in the definition of $\term{f}(s(\term{n}))$?
+A good way to think about this is as follows:\footnote{
+In a later section we'll formalise this to make clearer the \emph{inductive} structure of this argument.
+} 
+\begin{quote}
+``Imagine that the function \term{f} has already been defined for the previous input value \term{n}, so $\term{f}(\term{n})$ is just some value of the output type.  Now, if you're handed that value, and the value \term{n}, how would you go about using those to work out the value of $\term{f}(s(\term{n}))$?''
+\end{quote}
+
+So, when we're working out the value of $\term{f}(s(\term{n}))$, these are the resources we have available: we have \term{n} and $\term{f}(\term{n})$, we have any other functions that have already been defined using simple recursion, and of course we have constant values $\term{0}_{\type{\NN}}$, $1$, $2$, etc.  
+
+Let's see how some of the functions we've defined above fit into this pattern.
+\begin{description}
+\item[Factorial]
+The definition of factorial given in Section~\ref{} is a straightforward example of the above pattern.  It is a function $\type{\NN} \to \type{\NN}$, so its output type is \type{\NN}.  The value of $\term{fact}(\term{0}_{\type{\NN}})$ is $1$.  If we're handed the numbers \term{n} and $\term{fact}(\term{n})$, how do we work out the value of $\term{fact}(s(\term{n}))$?  We first apply $s$ to \term{n}, and then apply the function \term{mult} (which we can define using simple recursion, see below) to 
+$s(\term{n})$
+and the value
+$\term{fact}(\term{n})$ we were given.  So:
+\[
+\term{fact}(s(\term{n})) \DefinedAs
+\term{mult}(s(\term{n}))(\term{fact}(\term{n}))
+\]
+
+\item[Triangular]
+The triangular numbers are computed in a very similar way to the factorial.  If we're given $\term{sum-to}(\term{n})$ and $\term{n}$, then to work out 
+ $\term{sum-to}(s(\term{n}))$ 
+we first apply $s$ to \term{n}, and then apply the function \term{add} (which we can also define using simple recursion, see below) to 
+$s(\term{n})$
+and the value
+$\term{sum-to}(\term{n})$ we were given.  So:
+\[
+\term{sum-to}(s(\term{n})) 
+\DefinedAs
+\term{add}(s(\term{n}))(\term{sum-to}(\term{n}))
+\]
+
+\item[Double]
+The function \term{double} defined in Section~\ref{} clearly fits this pattern.  It is also a function $\type{\NN} \to \type{\NN}$, so its output type is \type{\NN}.  The value of $\term{double}(\term{0}_{\type{\NN}})$ is $\term{0}_{\type{\NN}}$.  If we're handed the numbers \term{n} and $\term{double}(\term{n})$, how do we work out the value of $\term{double}(s(\term{n}))$?  In this case, we don't use \term{n} at all, and we simply apply $s$ twice to $\term{double}(\term{n})$.  So:
+\[
+\term{double}(s(\term{n})) \DefinedAs
+s(s(\term{double}(\term{n})))
+\]
+
+
+
+\item[Addition]
+Now let's consider a more complicated example: the addition function \term{add} is of type $\type{\NN} \to (\type{\NN} \to \type{\NN})$, so its output type is $\type{\NN} \to \type{\NN}$.  So now $\term{add}(\term{0}_{\type{\NN}})$, 
+$\term{add}(\term{n})$, and
+$\term{add}(s(\term{n}))$ 
+are all functions of type $\type{\NN} \to \type{\NN}$.
+
+The value of $\term{add}(\term{0}_{\type{\NN}})$ is just the identity function $\term{b} \mapsto \term{b}$.  
+
+If we're handed the number \term{n} and the function $\term{add}(\term{n})$, how do we use these to define the function $\term{add}(s(\term{n}))$?  This function is of type $\type{\NN} \to \type{\NN}$, so it takes an input $\term{b}:\type{\NN}$ and returns some number $\term{add}(s(\term{n}))(\term{b})$.  If we know how to add \term{n} to any number, then it's clear how to add $s(\term{n})$ to a number -- we just add \term{n} and then take the successor.  
+\[
+\term{add}(s(\term{n})) \DefinedAs
+\term{b} \mapsto s(\term{add}(\term{n})(\term{b}))
+\]
+\end{description}
+
+Note that in the definition of \term{double} and \term{add} we don't use \term{n} in defining the recursive call.  When we're given resources to work with we're not \emph{obliged} to use them all!  Also, note in \term{factorial}, \term{sum-to}, and \term{double} that we're allowed to apply $s$ to the given value of \term{n} to use $s(\term{n})$ in our answer, and we're allowed to apply $s$ to other things we're given or have calculated: once we're handed \term{n} and $\term{f}(\term{n})$, we can do whatever we want with them.  The only constraints imposed by simple recursion are
+\begin{enumerate}[(i)]
+\item it's specifically $\term{f}(\term{n})$ we're given to work with, not $\term{f}$ applied to any other thing;
+\item we can only make use of other functions that are also defined by simple recursion.
+\end{enumerate}
+
+
+\subsection{Which functions are simple recursive?}
+
+We've seen that a few simple functions can be defined using simple recursion.  But what else can we do with it?  Isn't it, as we feared in Section~\ref{}, too restrictive to allow us to be sufficiently powerful for our requirements?  Let's review the functions we defined in Section~\ref{} to see.
+
+It's clear by inspection of the definitions given in Section~\ref{} that \term{mult} and \term{exp} are simple recursive.  The limited predecessor function \term{pre} is simple recursive in a trivial way -- 
+the definition of $\term{pre}(s(\term{n}))$ 
+makes no use of $\term{pre}(\term{n})$ and just returns the given value \term{n}.  Thus limited subtraction is also simple recursive.
+
+We can still define functions via partial application, and so branching as defined in Section~\ref{} is still available to us.\footnote{
+TODO: Expand on this with an example.
+}
+
+All of the comparison predicates defined in Section~\ref{} are already written in simple recursive style.  For example, $\term{gt?}(\term{0}_{\type{\NN}})$ is the function that maps all inputs to $\term{0}_{\type{\NN}}$, while $\term{gt?}(s(\term{n}))$ is a function that is itself simple recursive and uses only $\term{gt?}(\term{n})$ in its definition.
+
+What about the \term{even?} predicate, defined as:
+\begin{align*}
+\term{even?}(\term{0}_{\type{\NN}}) &\DefinedAs 
+1
+\\
+\term{even?}(1) &\DefinedAs 
+\term{0}_{\type{\NN}}
+\\
+\term{even?}(s(s(\term{n}))) &\DefinedAs
+\term{even?}(\term{n})
+\end{align*}
+It's clear that the recursive call uses a smaller argument, but the definition given above doesn't fit the rules of simple recursion.  However, we can give an alternative definition as follows:
+\begin{align*}
+\term{even?}(\term{0}_{\type{\NN}}) &\DefinedAs 
+1
+\\
+\term{even?}(s(\term{n})) &\DefinedAs
+1  - \term{even?}(\term{n})
+\end{align*}
+Alernatively, we could have defined a negation operation \term{not} on our two ``truth values'' as
+$\term{not}(\term{0}_{\type{\NN}}) \DefinedAs 1$ and 
+$\term{not}(s(\term{n})) \DefinedAs \term{0}_{\type{\NN}}$, and 
+then defined 
+\[
+\term{even?}(s(\term{n})) \DefinedAs
+\term{not}(\term{even?}(\term{n}))
+\]
+
+So all the functions we defined in Section~\ref{} are simple recursive.  
+
+We introduced simple recursion to rule out pseudo-functions like \term{rocket}, and we can see that this is not defined in a simple recursive way and cannot be re-written in such a way.
+
+Similarly, although $\term{coll}$ is simple recursive, (since it is defined using only the \term{even?} predicate and functions \term{half} and \term{mult}) the function $\term{k}$ violates the rules of simple recursion by being defined via a call to $\term{k}(\term{coll}(\term{n}))$.
+
+But that's not the end of the story.  When we found that \term{even?} was not given in simple recursive style we simply re-wrote it to make it conform.  Can we do that with \term{k} as well?  And what about \term{nextprime}?  We said in Section~\ref{} that we know this always terminates, and yet the definition given there is clearly not in simple recursive style.  Can we re-write it, as we did with \term{even?}, or does this reveal the limitations of simple recursion?
+
+Let's think about how exactly we know that \term{nextprime} always terminates, despite using recursive calls on larger inputs.  We only know this because we know that there are infinitely many prime numbers -- or, more specifically, we know that for any number there exists a prime greater than that number.  Better than that, we can put a specific bound on how large that prime might be, since we know by Bertrand's theorem\footnote{
+TODO: Cite!} that for any number $n$ there is a prime between $n$ and $2n$.
+
+Equipped with this theorem, we could re-write \term{nextprime} to fit into the constraint of simple recursion, by using a helper function. Given an input $n$ we feed $2n$ into the helper function, which then works downward from $2n$ to $n$ finding the smallest prime in that range; when it reaches $n$, it outputs the smallest prime it has found, which is therefore the next prime greater or equal to $n$.
+
+We can repeat this trick on any well-defined function for which we can put upper bounds on the argument values we need to consider.  Rather than having the recursive calls climb upward (with the implicit knowledge of the upper bound reassuring us that the recursion will terminate\footnote{
+Assuming, that is, that we don't get stuck in an infinite loop.
+}) 
+we can instead just jump straight to the upper bound and work downwards, thereby making it \emph{explicit} that the recursion will terminate.
+
+On this diagnosis, then, the problem with the pseudo-function \term{k}, defined via \term{coll}, is therefore not just that its inputs can sometimes increase rather than decreasing, but that we cannot put bounds on how high they will increase, and so we cannot translate it into a simple recursive function.
+
+This might then lead us to seek a compromise.  In the case of \term{nextprime} we had Bertrand's theorem to tell us what the upper bound on the prime would be.  But even without this knowledge, we already knew that a prime larger than our given \term{n} existed.  Isn't that knowledge itself sufficient?  Can't we relax the strict constraint of structural recursion, and instead just require a proof that there exists an upper bound?  
+
+But remember that we're working constructively: the proof of an existential proposition is an example.  To prove that there is an upper bound, we need to have a \emph{particular} upper bound to exhibit; and to prove that there is \emph{always} an upper bound for any $\term{n}$, we require a function that maps each $\term{n}$ to a corresponding upper bound.  Thus, if we are (constructively) in a position to claim that a function's evaluations will always terminate because its recursive arguments are bounded above, then this can only be because we know what that bound is for any given $\term{n}$, in which case we can use that bound in the definition of a simple recursive function instead.
+
+%While there may be other more complex schemes for guaranteeing termination (i.e. guaranteeing that a given definition produces a function all of whose evaluations terminate), structural recursion has the benefit of being broad enough to cover most functions of interest to us, and simple enough to be able to enforce it in a completely formal way.  We will therefore use this as our constraint on what function definitions are allowed.\footnote{
+%In practice, we will not in fact require that every function definition be given in an explicitly structural recursive form, since this can often make them hard to read.  The requirement is rather that any function we define can be re-cast into such a form, which we will sometimes demonstrate but will more often leave as an exercise for the diligent reader.
+%}
+
+\subsection{Some more simple recursive functions}
+
+\subsubsection{Tetration}
+
+Tetration is so called because it is the fourth in the series of operations beginning with addition, multiplication, and exponentiation.  (It is also known as superexponentiation.)
+%
+\begin{align*}
+\term{tetr}(\term{0}_{\type{\NN}})(\term{y}) &\DefinedAs \term{y}
+\\
+\term{tetr}(s(\term{x}))(\term{y}) &\DefinedAs \term{exp}(\term{y})(\term{tetr}(\term{x})(\term{y}))
+\end{align*} 
+$\term{tetr}(\term{x})(\term{y})$ evaluates to $\term{y}^{\term{y}^{\term{y}^{\ldots}}}$, with $\term{x}+1$ instances of $\term{y}$ in the tower.
+It therefore grows extremely quickly: 
+\[
+\term{tetr}(2)(2) = 2^{2^{2}} = 2^4 = 16
+\]
+while 
+\[
+\term{tetr}(2)(3) = {3^{3^{3}}} = {3^{27}} \simeq 7.63 \times 10^{12}
+\]
+Since we have already seen that \term{exp} is simple recursive, it is clear that \term{tetr} is as well.
+
+
+\subsubsection{Further Hyper-operations}
+
+We have now seen a sequence of operations, each defined in terms of the previous one using the same pattern:
+\begin{align*}
+\term{add}(s(\term{n}))(\term{m}) &\DefinedAs
+s(\term{add}(\term{n})(\term{m}))
+\\
+\term{mult}(s(\term{n}))(\term{m}) &\DefinedAs
+\term{add}(\term{m})(\term{mult}(\term{n})(\term{m}))
+\\
+\term{exp}(s(\term{n}))(\term{m}) &\DefinedAs
+\term{mult}(\term{m})(\term{exp}(\term{n})(\term{m}))
+\\
+\term{tetr}(s(\term{n}))(\term{m}) &\DefinedAs \term{exp}(\term{m})(\term{tetr}(\term{n})(\term{m}))
+\end{align*}
+
+We can therefore gather them all into a single function that takes one extra argument (which we'll write as a subscript, to avoid clutter), as follows:
+\begin{align*}
+\term{h}_{0}(a)(b) &\DefinedAs 	s(b)
+\\
+\term{h}_{1}(a)(b) &\DefinedAs 	\term{add}(a)(b)
+\\
+\term{h}_{2}(a)(b) &\DefinedAs 	\term{mult}(a)(b)
+\\
+\term{h}_{3}(a)(b) &\DefinedAs 	\term{exp}(a)(b)
+\\
+\term{h}_{4}(a)(b) &\DefinedAs 	\term{tetr}(a)(b)
+\end{align*}
+We can then see the common pattern in the above recursive definitions more clearly.  For example, the definition of \term{mult} becomes:
+\[
+\term{h}_{2}(s(n))(m) \DefinedAs 	
+\term{h}_{1}(\term{m})(\term{h}_{2}(\term{n})(\term{m}))
+\]
+while the definition of \term{exp} becomes:
+\[
+\term{h}_{3}(s(n))(m) \DefinedAs 	
+\term{h}_{2}(\term{m})(\term{h}_{3}(\term{n})(\term{m}))
+\]
+and, since we've defined $\term{h}_{0}$ to return the successor of its second argument, even \term{add} fits this pattern:
+\[
+\term{h}_{1}(s(n))(m) \DefinedAs 	
+\term{h}_{0}(\term{m})(\term{h}_{1}(\term{n})(\term{m}))
+\]
+
+
+
+%\newpage
+%\subsection{Structural Recursion}
+%This constraint is an example of \terminology{structural recursion}, so called because 
+%we can think of the function ``structurally decomposing'' its input $s(\term{n})$ -- stripping off the $s$ term constructor from the predecessor term \term{n} -- and then using this \term{n} as the input to the recursive call.\footnote{
+%TODO: Add citation to Felleisen et al., cited in Wikipedia page on structural recursion.
+%}
+%
+%This is similar to the way we define functions on coproducts.  The structure of a term of $\term{A} \+ \term{B}$ is either a term constructor $inl$ applied to a term $\term{a}:\type{A}$
+%or
+%a term constructor $inr$ applied to a term $\term{b}:\type{B}$.  
+%A function on the coproduct takes such a term, decomposes this structure to recover the term \term{a} or \term{b}, and then acts upon that term.
+%The difference with the natural numbers, of course, is that the term that is extracted is of \emph{the same} type as the original input, and so we can recursively apply the same function to it.
+%
+%In later sections we will meet examples of more complex recursively defined types, and for each of these we can say what structural recursion means.  For example, we will define \emph{binary trees} (Section~\ref{}) which in general consist of a pair $(\term{t}_l, \term{t}_r)$, where 
+%$\term{t}_l$ is the \emph{left subtree} and 
+%$\term{t}_r$ is the \emph{right subtree}.  Structural recursion on a binary tree involves decomposing this structure, applying the function recursively to each of these two subtrees, and then combining the two results in some way.
+%
+%Returning to the natural numbers, it is clear that restricting ourselves to structural recursion straightforwardly and immediately solves the termination problem.  Since any term of $\type{\NN}$ (aside from  $\term{0}_{\type{\NN}}$) is constructed by applying the term constructor $s$ to a term $\term{n}:\type{\NN}$, each evaluation step of a function defined by structural recursion merely ``unwinds'' this construction, bringing us back to the base case $\term{0}_{\type{\NN}}$, and so the evaluation must eventually terminate.  The same is true of structural recursion on any other sensibly defined\footnote{
+%Question: Is there some way we could define a type ``non-sensibly'', such that structural recursion might fail to guarantee termination?
+%} 
+%recursive type: as long as the only way to produce a term of the type is via some fixed collection of term constructors (including perhaps some no-input term constructors), then each evaluation step of the function unwinds the construction step that produced its input, and so leads us back toward the base cases for that type.
+
+
+
+
+
+
+
+%Written in this form, it's clear that to define each of these functions we have to provide two things: 
+%\begin{enumerate}[(i)]
+%\item a value $\term{c}_{z}$ of the output type to map $\term{0}_{\type{\NN}}$ to;
+%\item a value $\term{c}_{s}$ of the output type to map $s(\term{n})$ to, for any $\term{n}:\type{\NN}$
+%\end{enumerate}
+%
+
+
+
+
